@@ -1,0 +1,28 @@
+{
+  "slug": "crm",
+  "name": "CRM Comercial",
+  "platform": "Python · FastAPI",
+  "port": 5001,
+  "color": "#2563eb",
+  "description": "Relaciones que impulsan tu negocio.",
+  "pages": [
+    {
+      "code": "crm.clientes",
+      "name": "Clientes",
+      "route": "/clientes",
+      "icon": "users"
+    },
+    {
+      "code": "crm.oportunidades",
+      "name": "Oportunidades",
+      "route": "/oportunidades",
+      "icon": "chart"
+    },
+    {
+      "code": "crm.reportes",
+      "name": "Reportes comerciales",
+      "route": "/reportes",
+      "icon": "chart"
+    }
+  ]
+}

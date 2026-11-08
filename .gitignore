@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.local/
+dist/
+__pycache__/
+.venv/
+target/
+test-results/
+playwright-report/
+*.log
+*.dump
+*.backup
+*.class
+*.jar

@@ -1,0 +1,28 @@
+{
+  "slug": "facturacion",
+  "name": "Facturación",
+  "platform": "Node.js · Express",
+  "port": 5003,
+  "color": "#7c3aed",
+  "description": "Tu operación, en orden.",
+  "pages": [
+    {
+      "code": "facturacion.comprobantes",
+      "name": "Comprobantes",
+      "route": "/comprobantes",
+      "icon": "file"
+    },
+    {
+      "code": "facturacion.series",
+      "name": "Series y numeración",
+      "route": "/series",
+      "icon": "layers"
+    },
+    {
+      "code": "facturacion.reportes",
+      "name": "Reportes de facturación",
+      "route": "/reportes",
+      "icon": "chart"
+    }
+  ]
+}

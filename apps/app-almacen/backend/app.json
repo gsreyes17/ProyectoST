@@ -1,0 +1,28 @@
+{
+  "slug": "almacen",
+  "name": "Almacén",
+  "platform": "Java · HTTP Server",
+  "port": 5002,
+  "color": "#059669",
+  "description": "Cada producto, en su lugar.",
+  "pages": [
+    {
+      "code": "almacen.productos",
+      "name": "Productos",
+      "route": "/productos",
+      "icon": "package"
+    },
+    {
+      "code": "almacen.movimientos",
+      "name": "Movimientos",
+      "route": "/movimientos",
+      "icon": "activity"
+    },
+    {
+      "code": "almacen.reportes",
+      "name": "Reportes de inventario",
+      "route": "/reportes",
+      "icon": "chart"
+    }
+  ]
+}
