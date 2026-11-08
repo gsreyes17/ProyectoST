@@ -38,7 +38,7 @@ ProyectoST/
 Las cuatro bases, sus roles SQL y las migraciones ya están creados. Se conservaron los usuarios y la configuración de la instalación anterior.
 
 ```powershell
-npm run dev
+pnpm run dev
 ```
 
 También puedes abrir `Iniciar.cmd`. Visita el portal en http://localhost:4000. Las credenciales locales iniciales están en `.local/admin-inicial.txt` y las de las demos en `.local/usuarios-demo.txt`; no se incluyen en el repositorio. Si esas contraseñas fueron cambiadas desde el panel, usa las nuevas.
@@ -47,14 +47,16 @@ El usuario administrador accede al portal; operador y supervisor tienen roles en
 
 ## Instalación reproducible desde un clon
 
-Requisitos: Node.js 22.12 o posterior, PostgreSQL 17, Python 3.11 o posterior y JDK 21 o posterior (`java` y `javac` en PATH). Google Chrome solo es necesario para las pruebas de navegador. El arranque global de Java no requiere Maven.
+Requisitos: Node.js 22.13 o posterior, pnpm 11.18.0, PostgreSQL 17, Python 3.11 o posterior y JDK 21 o posterior (`java` y `javac` en PATH). Google Chrome solo es necesario para las pruebas de navegador. El arranque global de Java no requiere Maven.
+
+La versión de pnpm está fijada en `package.json`; debe estar disponible en PATH antes de instalar. Consulta la [instalación oficial de pnpm](https://pnpm.io/installation) si tu equipo aún no lo tiene. Ejecuta la instalación desde la raíz: `pnpm-workspace.yaml` incluye los cuatro frontends y los dos backends Node. `pnpm-lock.yaml` es el único lockfile del proyecto.
 
 ```powershell
-npm ci
-npm run env:init
+pnpm install --frozen-lockfile
+pnpm run env:init
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r apps/app-crm/backend/requirements.txt
-npm run java:setup
+pnpm run java:setup
 ```
 
 `env:init` crea un `.env` privado por backend y genera contraseñas/claves aleatorias. Si encuentra una configuración anterior, la conserva y traslada la configuración de seguridad a su nueva ubicación. El `.env` raíz queda reservado a la instalación de PostgreSQL.
@@ -62,12 +64,12 @@ npm run java:setup
 Completa `POSTGRES_ADMIN_HOST`, `POSTGRES_ADMIN_PORT`, `POSTGRES_ADMIN_USER` y `POSTGRES_ADMIN_PASSWORD` en el `.env` raíz y ejecuta:
 
 ```powershell
-npm run db:setup
-npm run db:seed
-npm run admin:create
-npm run demo:users
-npm run build
-npm run dev
+pnpm run db:setup
+pnpm run db:seed
+pnpm run admin:create
+pnpm run demo:users
+pnpm run build
+pnpm run dev
 ```
 
 Los comandos son repetibles: no borran bases, no reinician usuarios ni cambian contraseñas de roles existentes. Si una base ya tiene otro propietario o existe una incompatibilidad de configuración, se informa y se conserva. Después de instalar puedes vaciar la contraseña administrativa del `.env` raíz.
@@ -81,14 +83,16 @@ Ejemplo CRM, desde la raíz:
 ```powershell
 node scripts/build.mjs crm
 node scripts/dev.mjs crm
-npm run dev --workspace @proyectost/crm-frontend
+pnpm --filter @proyectost/crm-frontend dev
 ```
 
 Los dos últimos comandos se ejecutan en terminales distintas. El frontend de desarrollo usa http://localhost:5174 y el backend http://localhost:5001. IAM debe estar ejecutándose; puedes iniciarlo aparte con `node scripts/dev.mjs seguridad`.
 
-Los frontends de desarrollo usan los puertos 5173 (Seguridad), 5174 (CRM), 5175 (Almacén) y 5176 (Facturación). Los backends sirven su propio `frontend/dist` al ejecutar el ecosistema compilado. `npm run build` compila los cuatro; `node scripts/build.mjs <app>` compila solo el indicado.
+Los frontends de desarrollo usan los puertos 5173 (Seguridad), 5174 (CRM), 5175 (Almacén) y 5176 (Facturación). Los backends sirven su propio `frontend/dist` al ejecutar el ecosistema compilado. `pnpm run build` compila los cuatro; `node scripts/build.mjs <app>` compila solo el indicado.
 
-Cada chat puede trabajar en su carpeta con su README y AGENTS. Las fuentes no se comparten; la instalación npm y el lockfile raíz se coordinan mediante workspaces. Usa ramas/copias de trabajo distintas para evitar cambios simultáneos sobre un mismo archivo.
+Cada chat puede trabajar en su carpeta con su README y AGENTS. Las fuentes no se comparten; la instalación pnpm y el lockfile raíz se coordinan mediante workspaces. Usa ramas/copias de trabajo distintas para evitar cambios simultáneos sobre un mismo archivo.
+
+Para agregar una dependencia utiliza el paquete que la necesita, por ejemplo `pnpm --filter @proyectost/crm-frontend add <paquete>`; para herramientas globales del proyecto utiliza `pnpm add -Dw <paquete>`. Versiona los cambios al manifiesto correspondiente y a `pnpm-lock.yaml`. Los scripts de instalación de dependencias nativas están autorizados explícitamente para Argon2 y esbuild en `pnpm-workspace.yaml`.
 
 ## Cómo se demuestra la integración de bases
 
@@ -104,18 +108,18 @@ Cada chat puede trabajar en su carpeta con su README y AGENTS. Las fuentes no se
 Con los cuatro servicios iniciados:
 
 ```powershell
-npm test
-npm run test:integration
-npm run test:browser
+pnpm test
+pnpm run test:integration
+pnpm run test:browser
 ```
 
-- `npm test`: 30 comprobaciones de contraseñas, MFA configurable, sesiones, permisos, aislamiento entre aplicaciones y límites de autenticación. Usa y elimina un esquema temporal, sin modificar las cuentas reales.
+- `pnpm test`: 30 comprobaciones de contraseñas, MFA configurable, sesiones, permisos, aislamiento entre aplicaciones y límites de autenticación. Usa y elimina un esquema temporal, sin modificar las cuentas reales.
 - `test:integration`: comprueba las cuatro conexiones propias y el rechazo de las otras doce combinaciones; verifica por HTTP que IAM autoriza antes de escribir en cada base. Usa y limpia una cuenta temporal.
 - `test:browser`: recorre el panel y las tres apps, MFA, menús, sidebar móvil, cierre/revocación y permisos; limpia cuentas y registros locales de prueba. Capturas en `.local/screenshots`.
 
 ## Compartir en un repositorio
 
-Versionar fuentes, `package-lock.json`, los `.env.example`, la documentación y los scripts SQL. `.gitignore` excluye `.env`, `.local`, credenciales iniciales, dependencias, entornos virtuales, JAR/clases descargados, compilados y volcados. Cada instalación genera sus propios secretos y cuentas iniciales.
+Versionar fuentes, `pnpm-lock.yaml`, los `.env.example`, la documentación y los scripts SQL. `.gitignore` excluye `.env`, `.local`, credenciales iniciales, dependencias, entornos virtuales, JAR/clases descargados, compilados y volcados. Cada instalación genera sus propios secretos y cuentas iniciales.
 
 No se incluyen datos reales, contraseñas de PostgreSQL, sesiones ni secretos MFA en los SQL. Los scripts de estructura están en cada `database/migrations`; la provisión y verificación globales están en `database/`. La carpeta `apps/app-almacen/backend/.local` se reconstruye con `java:setup` y el arranque Java.
 

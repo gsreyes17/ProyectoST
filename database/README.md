@@ -4,11 +4,11 @@ No se incluyen volcados con cuentas reales, hashes, sesiones, claves de integrac
 
 ## Instalación recomendada
 
-1. `npm run env:init`: genera `.env` raíz y un `.env` privado por backend; conserva la configuración existente.
+1. `pnpm run env:init`: genera `.env` raíz y un `.env` privado por backend; conserva la configuración existente.
 2. Completar `POSTGRES_ADMIN_PASSWORD` en el `.env` raíz para PostgreSQL 17.
-3. `npm run db:setup`: crea las cuatro bases y sus roles, configura el aislamiento y aplica migraciones.
-4. `npm run db:seed`: registra aplicaciones/roles/menús iniciales y configura las credenciales de integración locales.
-5. `npm run admin:create`: crea el primer administrador solo si no existe.
+3. `pnpm run db:setup`: crea las cuatro bases y sus roles, configura el aislamiento y aplica migraciones.
+4. `pnpm run db:seed`: registra aplicaciones/roles/menús iniciales y configura las credenciales de integración locales.
+5. `pnpm run admin:create`: crea el primer administrador solo si no existe.
 
 Después de instalar se puede vaciar `POSTGRES_ADMIN_PASSWORD`; migraciones posteriores usan los propietarios de cada base. No se cambia ninguna contraseña de un rol preexistente: si las credenciales locales no coinciden, corregir la configuración.
 

@@ -20,7 +20,7 @@ node scripts/build.mjs facturacion
 node scripts/dev.mjs facturacion
 ```
 
-El backend sirve su frontend compilado en http://localhost:5003. Para desarrollo con recarga, iniciar el backend y ejecutar `npm run dev` dentro de `frontend`; Vite usa http://localhost:5176 y reenvia `/api` a su propio backend.
+El backend sirve su frontend compilado en http://localhost:5003. Para desarrollo con recarga, iniciar el backend y ejecutar `pnpm run dev` dentro de `frontend`; Vite usa http://localhost:5176 y reenvia `/api` a su propio backend.
 
 ## Integracion
 
@@ -42,6 +42,6 @@ No replicar contrasenas, MFA ni roles en la base local. `iam_user_id` es una ref
 
 ## Node.js
 
-`backend/package.json` declara sus dependencias y comandos. Despues de `npm ci` en la raiz se puede ejecutar `npm run dev` desde `backend`. La conexion a su base se implementa con `pg.Pool` y consultas parametrizadas.
+`backend/package.json` declara sus dependencias y comandos. Despues de `pnpm install --frozen-lockfile` en la raiz se puede ejecutar `pnpm run dev` desde `backend`. La conexion a su base se implementa con `pg.Pool` y consultas parametrizadas.
 
 Ver la [arquitectura](../../docs/arquitectura.md), el [contrato IAM](../../docs/integracion.md) y la [guia de trabajo por app](../../docs/trabajo-por-app.md).

@@ -20,7 +20,7 @@ try {
     const { rows: roles } = await db.query(
       "SELECT id,app_id FROM roles WHERE is_system_admin",
     );
-    if (!roles[0]) throw new Error("Ejecuta primero npm run db:seed.");
+    if (!roles[0]) throw new Error("Ejecuta primero pnpm run db:seed.");
     const role = roles[0];
     const { rows: users } = await db.query(
       "INSERT INTO users(email,full_name,password_hash) VALUES($1,$2,$3) RETURNING id",

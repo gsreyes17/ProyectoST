@@ -12,7 +12,7 @@ const targets = applications.filter(
 );
 for (const app of targets) {
   if (!existsSync(appPath(app, "frontend/dist/index.html")))
-    throw new Error(`Compila el frontend de ${app.slug} con npm run build.`);
+    throw new Error(`Compila el frontend de ${app.slug} con pnpm run build.`);
   if (!existsSync(appPath(app, "backend/.env")))
     throw new Error(`Configura ${app.directory}/backend/.env.`);
 }
@@ -23,7 +23,7 @@ const javaClasses = appPath(
 );
 if (java) {
   if (!existsSync(jdbcFile))
-    throw new Error("Ejecuta primero npm run java:setup.");
+    throw new Error("Ejecuta primero pnpm run java:setup.");
   mkdirSync(javaClasses, { recursive: true });
   const compile = spawnSync(
     "javac",

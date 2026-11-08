@@ -20,7 +20,7 @@ node scripts/build.mjs crm
 node scripts/dev.mjs crm
 ```
 
-El backend sirve su frontend compilado en http://localhost:5001. Para desarrollo con recarga, iniciar el backend y ejecutar `npm run dev` dentro de `frontend`; Vite usa http://localhost:5174 y reenvia `/api` a su propio backend.
+El backend sirve su frontend compilado en http://localhost:5001. Para desarrollo con recarga, iniciar el backend y ejecutar `pnpm run dev` dentro de `frontend`; Vite usa http://localhost:5174 y reenvia `/api` a su propio backend.
 
 ## Integracion
 

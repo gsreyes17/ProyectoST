@@ -20,7 +20,7 @@ node scripts/build.mjs almacen
 node scripts/dev.mjs almacen
 ```
 
-El backend sirve su frontend compilado en http://localhost:5002. Para desarrollo con recarga, iniciar el backend y ejecutar `npm run dev` dentro de `frontend`; Vite usa http://localhost:5175 y reenvia `/api` a su propio backend.
+El backend sirve su frontend compilado en http://localhost:5002. Para desarrollo con recarga, iniciar el backend y ejecutar `pnpm run dev` dentro de `frontend`; Vite usa http://localhost:5175 y reenvia `/api` a su propio backend.
 
 ## Integracion
 
@@ -42,7 +42,7 @@ No replicar contrasenas, MFA ni roles en la base local. `iam_user_id` es una ref
 
 ## Java
 
-Requiere JDK 21 o posterior, disponible como `java` y `javac`. El runner usa el servidor HTTP del JDK y JDBC para mantener una demostracion pequena. `npm run java:setup` descarga pgJDBC 42.7.14 y verifica su SHA-256; el JAR queda en `backend/.local/lib` y no se versiona. Tambien se incluye `pom.xml` para trabajar con Maven.
+Requiere JDK 21 o posterior, disponible como `java` y `javac`. El runner usa el servidor HTTP del JDK y JDBC para mantener una demostracion pequena. `pnpm run java:setup` descarga pgJDBC 42.7.14 y verifica su SHA-256; el JAR queda en `backend/.local/lib` y no se versiona. Tambien se incluye `pom.xml` para trabajar con Maven.
 
 El directorio de trabajo del proceso Java es `backend`. `Config.java` carga su `.env`, `Database.java` contiene consultas parametrizadas y `Main.java` adapta HTTP/IAM. El driver procede de [pgJDBC](https://jdbc.postgresql.org/download/) a traves de Maven Central.
 

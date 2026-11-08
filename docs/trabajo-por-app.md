@@ -33,10 +33,10 @@ node scripts/build.mjs crm
 # Iniciar solo su backend (IAM debe estar ejecutándose para el login)
 node scripts/dev.mjs crm
 # Desarrollo de su frontend con recarga automática y proxy al backend
-npm run dev --workspace @proyectost/crm-frontend
+pnpm --filter @proyectost/crm-frontend dev
 ```
 
-Cada workspace frontend también admite `npm run build` desde su propia carpeta. Los backends Node tienen su propio `package.json`. Python tiene `requirements.txt`; Java tiene un `pom.xml` opcional, además del runner JDK del monorepo.
+Cada workspace frontend también admite `pnpm run build` desde su propia carpeta. Los backends Node tienen su propio `package.json`. Python tiene `requirements.txt`; Java tiene un `pom.xml` opcional, además del runner JDK del monorepo.
 
 ## Contratos que deben permanecer estables
 

@@ -1,0 +1,8 @@
+packages:
+  - apps/*/frontend
+  - apps/app-seguridad/backend
+  - apps/app-facturacion/backend
+
+allowBuilds:
+  argon2: true
+  esbuild: true

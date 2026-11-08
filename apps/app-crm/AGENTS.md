@@ -17,6 +17,6 @@ Agregar pantallas en `frontend/src/pages`, actualizar el catalogo `backend/app.j
 
 ## Comprobacion local
 
-Desde la raiz: `node scripts/build.mjs crm` y `node scripts/dev.mjs crm`. El frontend admite `npm run dev` desde su carpeta y usa proxy al backend. Para validacion integrada, coordinar el arranque global y `npm run test:integration`.
+Desde la raiz: `node scripts/build.mjs crm` y `node scripts/dev.mjs crm`. El frontend admite `pnpm run dev` desde su carpeta y usa proxy al backend. Para validacion integrada, coordinar el arranque global y `pnpm run test:integration`.
 
 Las dependencias locales pueden declararse en el manifiesto/requirements/pom de esta app; los cambios al lockfile global y a scripts comunes requieren coordinacion. No versionar datos reales, secretos, entornos virtuales, drivers descargados ni compilados.

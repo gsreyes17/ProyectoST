@@ -46,7 +46,7 @@ Las páginas siguen vacías, como se pidió. El registro mínimo local permite c
 
 Cada carpeta `frontend` tiene `package.json`, `vite.config.js`, `src/main.jsx`, componentes, estilos y `dist` propios. Las demos tienen `src/pages/index.jsx` para comenzar a implementar sus pantallas. Cambiar CRM no recompila ni cambia Almacén o Facturación, salvo que se ejecute voluntariamente el comando global de compilación.
 
-El npm workspace comparte la instalación de dependencias y el lockfile, no las fuentes ni el estado de ejecución. Un cambio de dependencias actualiza el lockfile raíz y debe coordinarse entre chats.
+El workspace de pnpm comparte la instalación de dependencias y el lockfile, no las fuentes ni el estado de ejecución. Un cambio de dependencias actualiza el lockfile raíz y debe coordinarse entre chats.
 
 ## Configuración independiente
 

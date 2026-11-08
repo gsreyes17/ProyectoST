@@ -2,10 +2,10 @@
 
 ## Preparación
 
-1. Inicia PostgreSQL 17 y ejecuta `npm run dev` en la raíz del proyecto.
+1. Inicia PostgreSQL 17 y ejecuta `pnpm run dev` en la raíz del proyecto.
 2. Abre el portal en `http://localhost:4000`.
 3. Usa las credenciales de `.local/admin-inicial.txt`. El primer ingreso requiere enrolar el autenticador y guardar la recuperación.
-4. Si quieres dos cuentas listas para comparar, ejecuta `npm run demo:users` y consulta `.local/usuarios-demo.txt`. Sus autenticadores se enrolan al primer ingreso.
+4. Si quieres dos cuentas listas para comparar, ejecuta `pnpm run demo:users` y consulta `.local/usuarios-demo.txt`. Sus autenticadores se enrolan al primer ingreso.
 5. Mantén el portal y los clientes en pestañas distintas, usando siempre `localhost` para evitar confundir cookies de `localhost` y `127.0.0.1`.
 
 ## Explicación inicial
@@ -26,7 +26,7 @@
 10. **Bloqueo:** desactivar la cuenta desde el panel. La siguiente petición protegida del cliente es denegada y pide ingresar otra vez.
 11. **Otras tecnologías:** repetir el acceso en Almacén (Java, puerto 5002) y Facturación (Node, puerto 5003). Cada aplicación tiene su propia sesión y sus propios roles.
 12. **Auditoría:** filtrar por usuario/aplicación y resultado. Mostrar eventos de ingreso, MFA, cambios y accesos denegados.
-13. **Cuatro bases:** ejecutar `npm run test:integration` o inspeccionar `integration_access` en `crm_app`, `almacen_app` y `facturacion_app`. Mostrar que IAM autoriza primero y cada backend utiliza su propio usuario/base SQL; un acceso denegado no inserta registros locales.
+13. **Cuatro bases:** ejecutar `pnpm run test:integration` o inspeccionar `integration_access` en `crm_app`, `almacen_app` y `facturacion_app`. Mostrar que IAM autoriza primero y cada backend utiliza su propio usuario/base SQL; un acceso denegado no inserta registros locales.
 
 ## Detalles que conviene explicar
 

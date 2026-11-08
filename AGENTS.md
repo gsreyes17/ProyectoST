@@ -11,6 +11,8 @@ Lee `README.md`, `docs/arquitectura.md` y el `AGENTS.md` de la aplicación asign
 
 Cada frontend tiene fuentes y compilación propias. No importa código de otra aplicación. Los estilos iniciales fueron copiados como punto de partida y se pueden modificar en cada app.
 
+Usar pnpm 11.18.0 (fijado en `package.json`). Instalar desde la raíz con `pnpm install --frozen-lockfile`. Los paquetes están definidos en `pnpm-workspace.yaml`; conservar un único `pnpm-lock.yaml`. Agregar dependencias al paquete correspondiente con `pnpm --filter <paquete> add <dependencia>` y coordinar los cambios al lockfile raíz.
+
 ## Reglas de integración
 
 1. Autenticar y autorizar en la API transversal antes de leer/escribir datos de negocio.

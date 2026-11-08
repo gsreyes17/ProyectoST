@@ -20,7 +20,7 @@ node scripts/build.mjs seguridad
 node scripts/dev.mjs seguridad
 ```
 
-El backend sirve su frontend compilado en http://localhost:4000. Para desarrollo con recarga, iniciar el backend y ejecutar `npm run dev` dentro de `frontend`; Vite usa http://localhost:5173 y reenvia `/api` a su propio backend.
+El backend sirve su frontend compilado en http://localhost:4000. Para desarrollo con recarga, iniciar el backend y ejecutar `pnpm run dev` dentro de `frontend`; Vite usa http://localhost:5173 y reenvia `/api` a su propio backend.
 
 ## Seguridad central
 
