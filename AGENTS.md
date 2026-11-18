@@ -4,7 +4,7 @@ Lee `README.md`, `docs/arquitectura.md` y el `AGENTS.md` de la aplicación asign
 
 ## Alcance por aplicación
 
-- `apps/app-seguridad`: identidad, contraseña, MFA configurable, sesiones, roles, menús y auditoría. Base `seguridad_transversal`.
+- `apps/app-seguridad`: identidad, contraseña, MFA configurable, sesiones, roles, menús, capacidades (grillas, botones y columnas) y auditoría. Base `seguridad_transversal`.
 - `apps/app-crm`: frontend React, backend Python/FastAPI y base `crm_app`.
 - `apps/app-almacen`: frontend React, backend Java/JDBC y base `almacen_app`.
 - `apps/app-facturacion`: frontend React, backend Node/Express y base `facturacion_app`.
@@ -19,8 +19,9 @@ Usar pnpm 11.18.0 (fijado en `package.json`). Instalar desde la raíz con `pnpm 
 2. Una aplicación solo usa su `backend/.env` y su base. No consultar SQL de la transversal ni copiar contraseñas/MFA/roles a las bases de negocio.
 3. Obtener el usuario desde la sesión validada por IAM. `iam_user_id` es una referencia externa; no hay claves foráneas entre bases.
 4. Conservar cookies HttpOnly, protección CSRF y validación en el backend de cada endpoint nuevo.
-5. Mantener la interfaz de las demos mínima: título, menús y cierre de sesión; desarrollar funcionalidad solo dentro de la app solicitada.
-6. No versionar `.env`, `.local`, credenciales iniciales, volcados, dependencias ni compilados.
+5. Mantener las demos sencillas: título, menús, cierre de sesión y, por pantalla, una grilla con sus botones; desarrollar funcionalidad solo dentro de la app solicitada.
+6. Todo botón, grilla o columna sensible se protege con una capacidad `<pantalla>.<accion>` registrada en IAM. El backend la pide con `auth/introspect` en cada operación; el frontend solo la usa para mostrar u ocultar. Ver `docs/integracion.md`.
+7. No versionar `.env`, `.local`, credenciales iniciales, volcados, dependencias ni compilados.
 
 ## Trabajo en varios chats
 

@@ -10,19 +10,49 @@
       "code": "crm.clientes",
       "name": "Clientes",
       "route": "/clientes",
-      "icon": "users"
+      "icon": "users",
+      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
+      "columns": [
+        { "key": "nombre", "label": "Cliente", "type": "text" },
+        { "key": "ruc", "label": "RUC", "type": "text" },
+        { "key": "ciudad", "label": "Ciudad", "type": "text" },
+        {
+          "key": "limite_credito",
+          "label": "Límite de crédito",
+          "type": "number",
+          "protected": true
+        }
+      ]
     },
     {
       "code": "crm.oportunidades",
       "name": "Oportunidades",
       "route": "/oportunidades",
-      "icon": "chart"
+      "icon": "chart",
+      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
+      "columns": [
+        { "key": "cliente", "label": "Cliente", "type": "text" },
+        { "key": "etapa", "label": "Etapa", "type": "text" },
+        { "key": "monto", "label": "Monto", "type": "number" },
+        {
+          "key": "margen",
+          "label": "Margen %",
+          "type": "number",
+          "protected": true
+        }
+      ]
     },
     {
       "code": "crm.reportes",
       "name": "Reportes comerciales",
       "route": "/reportes",
-      "icon": "chart"
+      "icon": "chart",
+      "actions": ["ver", "exportar"],
+      "columns": [
+        { "key": "indicador", "label": "Indicador", "type": "text" },
+        { "key": "periodo", "label": "Periodo", "type": "text" },
+        { "key": "valor", "label": "Valor", "type": "number" }
+      ]
     }
   ]
 }

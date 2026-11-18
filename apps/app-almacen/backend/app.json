@@ -10,19 +10,44 @@
       "code": "almacen.productos",
       "name": "Productos",
       "route": "/productos",
-      "icon": "package"
+      "icon": "package",
+      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
+      "columns": [
+        { "key": "codigo", "label": "Código", "type": "text" },
+        { "key": "nombre", "label": "Producto", "type": "text" },
+        { "key": "stock", "label": "Stock", "type": "number" },
+        {
+          "key": "costo",
+          "label": "Costo unitario",
+          "type": "number",
+          "protected": true
+        }
+      ]
     },
     {
       "code": "almacen.movimientos",
       "name": "Movimientos",
       "route": "/movimientos",
-      "icon": "activity"
+      "icon": "activity",
+      "actions": ["ver", "crear", "exportar"],
+      "columns": [
+        { "key": "fecha", "label": "Fecha", "type": "date" },
+        { "key": "producto", "label": "Producto", "type": "text" },
+        { "key": "tipo", "label": "Tipo", "type": "text" },
+        { "key": "cantidad", "label": "Cantidad", "type": "number" }
+      ]
     },
     {
       "code": "almacen.reportes",
       "name": "Reportes de inventario",
       "route": "/reportes",
-      "icon": "chart"
+      "icon": "chart",
+      "actions": ["ver", "exportar"],
+      "columns": [
+        { "key": "indicador", "label": "Indicador", "type": "text" },
+        { "key": "periodo", "label": "Periodo", "type": "text" },
+        { "key": "valor", "label": "Valor", "type": "number" }
+      ]
     }
   ]
 }

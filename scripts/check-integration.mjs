@@ -12,12 +12,17 @@ const tag = randomBytes(6).toString("hex");
 const password = randomBytes(18).toString("base64url");
 let userId;
 const diagnostics = [];
-async function call(port, endpoint, { method = "GET", body, cookie } = {}) {
+async function call(
+  port,
+  endpoint,
+  { method = "GET", body, cookie, csrf } = {},
+) {
   const response = await fetch(`http://127.0.0.1:${port}/api/v1${endpoint}`, {
     method,
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(cookie ? { Cookie: cookie } : {}),
+      ...(csrf ? { "X-CSRF-Token": csrf } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
     signal: AbortSignal.timeout(10000),
@@ -129,8 +134,82 @@ try {
     assert.equal(denied.response.status, 403);
     const final = await call(app.port, "/integration/status", { cookie });
     assert.equal(final.data.own_accesses, after.data.own_accesses);
+
+    // Grillas, botones y columnas. «Usuario normal» recibe de la carga inicial la
+    // grilla y el botón Nuevo de su pantalla; no edita, elimina ni exporta, y la
+    // columna protegida no sale del backend.
+    const csrf = login.data.csrfToken;
+    const records = `/records?path=${encodeURIComponent(option.route)}`;
+    const byId = (id) =>
+      `/records/${id}?path=${encodeURIComponent(option.route)}`;
+    const grid = await call(app.port, records, { cookie });
+    assert.equal(grid.response.status, 200);
+    assert.ok(grid.data.items.length > 0);
+    const hidden = opened.data.columns.find((column) => column.protected).key;
+    assert.ok(!grid.data.columns.some((column) => column.key === hidden));
+    assert.ok(grid.data.items.every((item) => !(hidden in item.data)));
+    const data = Object.fromEntries(
+      grid.data.columns.map((column) => [
+        column.key,
+        column.type === "number"
+          ? 7
+          : column.type === "date"
+            ? "2026-01-15"
+            : `qa-${tag}`,
+      ]),
+    );
+    const forged = await call(app.port, records, {
+      method: "POST",
+      body: { data },
+      cookie,
+    });
+    assert.equal(forged.response.status, 403, "crear exige CSRF");
+    const invalid = await call(app.port, records, {
+      method: "POST",
+      body: { data: { ...data, [grid.data.columns[0].key]: "" } },
+      cookie,
+      csrf,
+    });
+    assert.equal(invalid.response.status, 400);
+    const created = await call(app.port, records, {
+      method: "POST",
+      body: { data: { ...data, [hidden]: 999 } },
+      cookie,
+      csrf,
+    });
+    assert.equal(created.response.status, 201);
+    const local = new pg.Client({
+      connectionString: backendEnv(app).DATABASE_URL,
+    });
+    await local.connect();
+    try {
+      const stored = (
+        await local.query("SELECT data,iam_user_id FROM records WHERE id=$1", [
+          created.data.id,
+        ])
+      ).rows[0];
+      assert.equal(stored.iam_user_id, userId);
+      assert.ok(!(hidden in stored.data), "no escribe la columna protegida");
+    } finally {
+      await local.end();
+    }
+    for (const [method, endpoint, body] of [
+      ["PATCH", byId(created.data.id), { data }],
+      ["DELETE", byId(created.data.id)],
+      ["GET", `${records}&export=1`],
+    ]) {
+      const refused = await call(app.port, endpoint, {
+        method,
+        body,
+        cookie,
+        csrf,
+      });
+      assert.equal(refused.response.status, 403, `${method} sin capacidad`);
+    }
+    const unchanged = await call(app.port, records, { cookie });
+    assert.equal(unchanged.data.items.length, grid.data.items.length + 1);
     console.log(
-      `OK ${app.slug}: IAM autoriza, ${app.database} registra el acceso, la denegacion no escribe en la base.`,
+      `OK ${app.slug}: IAM autoriza, ${app.database} registra el acceso, la denegacion no escribe en la base; grilla, botones y columna protegida respetan el rol.`,
     );
   }
   console.log(
@@ -148,6 +227,7 @@ try {
           "DELETE FROM integration_access WHERE iam_user_id=$1",
           [userId],
         );
+        await local.query("DELETE FROM records WHERE iam_user_id=$1", [userId]);
       } finally {
         await local.end().catch(() => {});
       }

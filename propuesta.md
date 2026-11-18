@@ -1,6 +1,8 @@
 # Propuesta técnica: Aplicación de Seguridad Transversal
 
 > Estado de implementación actualizado: el proyecto está organizado en cuatro apps independientes con `frontend`, `backend` y `database`. Las bases son `seguridad_transversal`, `crm_app`, `almacen_app` y `facturacion_app`. La arquitectura y las instrucciones vigentes se encuentran en [README](README.md), [docs/arquitectura.md](docs/arquitectura.md) y los README/AGENTS de cada carpeta `apps/app-*`. Las secciones siguientes conservan el diseño funcional de seguridad; la estructura inicial de carpetas quedó sustituida por esta separación.
+>
+> Ampliación posterior: además de menús, cada rol tiene ahora grillas, botones y columnas por pantalla (capacidades), y las demos tienen pantallas con registros en su propia base. Las demos muestran también el usuario y su rol activo en la cabecera y tienen identidad visual propia (sustituye «interfaz mínima sin datos de sesión» de la sección 5). Esto sustituye lo indicado en las secciones 4 («no se agrega una matriz de operaciones») y 14 («permisos por campo»). Ver [docs/integracion.md](docs/integracion.md).
 
 ## 1. Objetivo y alcance
 

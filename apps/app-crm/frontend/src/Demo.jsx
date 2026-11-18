@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
-import { Icon, Button, Loading } from "./ui";
+import { Icon, Button, Loading, Avatar } from "./ui";
 
 export default function Demo({
   config,
@@ -315,6 +315,17 @@ export default function Demo({
             <Icon name={isMobile || compact ? "menu" : "menus"} size={19} />
           </button>
           <h1>{title}</h1>
+          {/* Usuario y rol activo: de este rol dependen menús, grillas y botones. */}
+          <div
+            className="demo-user"
+            title={`${session.full_name} · ${session.role_name}`}
+          >
+            <span className="demo-user-text">
+              <strong>{session.full_name}</strong>
+              <small>{session.role_name}</small>
+            </span>
+            <Avatar name={session.full_name} small />
+          </div>
         </header>
         <main
           id="demo-content"

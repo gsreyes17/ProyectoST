@@ -80,6 +80,8 @@ public final class Json {
             return "{" + String.join(",", map.entrySet().stream().map(entry -> stringify(entry.getKey().toString()) + ":" + stringify(entry.getValue())).toList()) + "}";
         }
         if (value instanceof Collection<?> list) return "[" + String.join(",", list.stream().map(Json::stringify).toList()) + "]";
+        // Los números se leen como Double; los enteros se escriben sin «.0».
+        if (value instanceof Double number && number == Math.rint(number) && Math.abs(number) < 1e15) return String.valueOf(number.longValue());
         return value.toString();
     }
 }

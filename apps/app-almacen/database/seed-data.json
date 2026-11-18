@@ -1,0 +1,121 @@
+{
+  "almacen.productos": [
+    {
+      "codigo": "PR-0005",
+      "nombre": "Etiqueta térmica 100x150",
+      "stock": 4200,
+      "costo": 0.08
+    },
+    {
+      "codigo": "PR-0006",
+      "nombre": "Esquinero de cartón 1 m",
+      "stock": 640,
+      "costo": 1.2
+    },
+    {
+      "codigo": "PR-0007",
+      "nombre": "Zuncho plástico 12 mm",
+      "stock": 58,
+      "costo": 46
+    },
+    {
+      "codigo": "PR-0008",
+      "nombre": "Bolsa de polietileno 60x90",
+      "stock": 1800,
+      "costo": 0.35
+    },
+    {
+      "codigo": "PR-0009",
+      "nombre": "Guantes de nitrilo talla M",
+      "stock": 320,
+      "costo": 0.9
+    },
+    {
+      "codigo": "PR-0010",
+      "nombre": "Montacargas manual 2.5 t",
+      "stock": 4,
+      "costo": 1350
+    },
+    {
+      "codigo": "PR-0011",
+      "nombre": "Caja de cartón 60x40",
+      "stock": 760,
+      "costo": 3.8
+    },
+    {
+      "codigo": "PR-0012",
+      "nombre": "Burbupack rollo 50 m",
+      "stock": 35,
+      "costo": 54.5
+    }
+  ],
+  "almacen.movimientos": [
+    {
+      "fecha": "2026-11-10",
+      "producto": "Etiqueta térmica 100x150",
+      "tipo": "Ingreso",
+      "cantidad": 2000
+    },
+    {
+      "fecha": "2026-11-10",
+      "producto": "Film estirable 500 m",
+      "tipo": "Salida",
+      "cantidad": 18
+    },
+    {
+      "fecha": "2026-11-11",
+      "producto": "Caja de cartón 60x40",
+      "tipo": "Ingreso",
+      "cantidad": 400
+    },
+    {
+      "fecha": "2026-11-12",
+      "producto": "Zuncho plástico 12 mm",
+      "tipo": "Salida",
+      "cantidad": 12
+    },
+    {
+      "fecha": "2026-11-12",
+      "producto": "Guantes de nitrilo talla M",
+      "tipo": "Ajuste",
+      "cantidad": 20
+    },
+    {
+      "fecha": "2026-11-13",
+      "producto": "Caja de cartón 40x30",
+      "tipo": "Salida",
+      "cantidad": 350
+    },
+    {
+      "fecha": "2026-11-13",
+      "producto": "Burbupack rollo 50 m",
+      "tipo": "Ingreso",
+      "cantidad": 25
+    },
+    {
+      "fecha": "2026-11-14",
+      "producto": "Pallet de madera estándar",
+      "tipo": "Ingreso",
+      "cantidad": 40
+    }
+  ],
+  "almacen.reportes": [
+    {
+      "indicador": "Productos con stock bajo",
+      "periodo": "2026-09",
+      "valor": 5
+    },
+    { "indicador": "Ingresos registrados", "periodo": "2026-09", "valor": 38 },
+    { "indicador": "Salidas registradas", "periodo": "2026-09", "valor": 49 },
+    {
+      "indicador": "Valor del inventario",
+      "periodo": "2026-10",
+      "valor": 184300
+    },
+    {
+      "indicador": "Rotación promedio (días)",
+      "periodo": "2026-10",
+      "valor": 27
+    }
+  ]
+}

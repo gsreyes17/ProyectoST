@@ -10,6 +10,8 @@ No se incluyen volcados con cuentas reales, hashes, sesiones, claves de integrac
 4. `pnpm run db:seed`: registra aplicaciones/roles/menús iniciales y configura las credenciales de integración locales.
 5. `pnpm run admin:create`: crea el primer administrador solo si no existe.
 
+`pnpm run demo:data` agrega registros de ejemplo a la tabla `records` de cada demo a partir de `apps/app-*/database/seed-data.json`. Usa el usuario de ejecución de cada app, es repetible y no modifica registros existentes.
+
 Después de instalar se puede vaciar `POSTGRES_ADMIN_PASSWORD`; migraciones posteriores usan los propietarios de cada base. No se cambia ninguna contraseña de un rol preexistente: si las credenciales locales no coinciden, corregir la configuración.
 
 ## Archivos SQL

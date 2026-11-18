@@ -159,6 +159,146 @@ async def integration_status(request: Request):
         return JSONResponse({'error': 'La base de datos del CRM no esta disponible.'}, status_code=503)
 
 
+# --- Registros de cada pantalla ---------------------------------------------
+# Cada operación solicita a IAM su capacidad exacta (`<pantalla>.<accion>`)
+# antes de consultar la base. Ocultar el botón en React no autoriza nada.
+INVALID_RECORD = {'error': 'Completa todos los campos con valores válidos.'}
+NOT_FOUND = {'error': 'Registro no encontrado.'}
+
+
+def valid_csrf(request):
+    token = request.cookies.get(COOKIE)
+    return bool(token) and hmac.compare_digest(request.headers.get('X-CSRF-Token', ''), csrf(token))
+
+
+async def authorize_action(request, action):
+    """Devuelve (200, acceso) o (estado, error). `acceso` incluye las columnas permitidas."""
+    route = request.query_params.get('path', '')
+    page = next((page for page in SETTINGS['pages'] if page['route'] == route), None)
+    if not page or action not in page['actions']:
+        return 404, {'error': 'Operación no disponible.'}
+    status, data = await upstream(request, '/auth/introspect', 'POST', {'permission': f"{page['code']}.{action}"})
+    if status != 200:
+        return status, data
+    # Las columnas protegidas solo se leen o escriben con su propia capacidad.
+    granted = set(data.get('capabilities', []))
+    columns = [column for column in page['columns']
+               if not column.get('protected') or f"{page['code']}.col.{column['key']}" in granted]
+    return 200, {'page': page, 'user_id': data['session']['user_id'], 'columns': columns}
+
+
+def clean_record(columns, body):
+    source = body.get('data') if isinstance(body, dict) else None
+    if not isinstance(source, dict):
+        return None
+    record = {}
+    for column in columns:
+        value = source.get(column['key'])
+        if column['type'] == 'number':
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value or abs(value) == float('inf'):
+                return None
+        else:
+            if not isinstance(value, str):
+                return None
+            value = value.strip()
+            if not value or len(value) > 120:
+                return None
+            if column['type'] == 'date':
+                try:
+                    datetime.strptime(value, '%Y-%m-%d')
+                except ValueError:
+                    return None
+        record[column['key']] = value
+    return record
+
+
+def query(sql, parameters, fetch=True):
+    with psycopg.connect(DATABASE_URL, connect_timeout=3) as connection:
+        cursor = connection.execute(sql, parameters)
+        return cursor.fetchall() if fetch else cursor.rowcount
+
+
+async def read_body(request):
+    try:
+        return await request.json()
+    except ValueError:
+        return None
+
+
+@app.get('/api/v1/records')
+async def list_records(request: Request):
+    status, access = await authorize_action(request, 'exportar' if request.query_params.get('export') == '1' else 'ver')
+    if status != 200:
+        return JSONResponse(access, status_code=status)
+    try:
+        rows = await run_in_threadpool(query, 'SELECT id,data,updated_at FROM records WHERE module=%s ORDER BY id LIMIT 500',
+                                       (access['page']['code'],))
+    except psycopg.Error:
+        return JSONResponse({'error': 'La base de datos del CRM no esta disponible.'}, status_code=503)
+    columns = access['columns']
+    return {
+        'columns': [{'key': column['key'], 'label': column['label'], 'type': column['type']} for column in columns],
+        'items': [{'id': row[0], 'updated_at': row[2].isoformat(),
+                   'data': {column['key']: row[1].get(column['key']) for column in columns}} for row in rows],
+    }
+
+
+@app.post('/api/v1/records')
+async def create_record(request: Request):
+    if not valid_csrf(request):
+        return JSONResponse({'error': 'Verificación de solicitud inválida.'}, status_code=403)
+    status, access = await authorize_action(request, 'crear')
+    if status != 200:
+        return JSONResponse(access, status_code=status)
+    record = clean_record(access['columns'], await read_body(request))
+    if record is None:
+        return JSONResponse(INVALID_RECORD, status_code=400)
+    try:
+        rows = await run_in_threadpool(query, 'INSERT INTO records(module,data,iam_user_id) VALUES(%s,%s::jsonb,%s) RETURNING id',
+                                       (access['page']['code'], json.dumps(record), access['user_id']))
+    except psycopg.Error:
+        return JSONResponse({'error': 'La base de datos del CRM no esta disponible.'}, status_code=503)
+    return JSONResponse({'id': rows[0][0]}, status_code=201)
+
+
+@app.patch('/api/v1/records/{record_id}')
+async def update_record(record_id: str, request: Request):
+    if not valid_csrf(request):
+        return JSONResponse({'error': 'Verificación de solicitud inválida.'}, status_code=403)
+    if not (record_id.isascii() and record_id.isdigit() and len(record_id) <= 15):
+        return JSONResponse(NOT_FOUND, status_code=404)
+    status, access = await authorize_action(request, 'editar')
+    if status != 200:
+        return JSONResponse(access, status_code=status)
+    record = clean_record(access['columns'], await read_body(request))
+    if record is None:
+        return JSONResponse(INVALID_RECORD, status_code=400)
+    try:
+        # La fusión conserva las columnas protegidas que este rol no puede ver.
+        changed = await run_in_threadpool(query, 'UPDATE records SET data=data||%s::jsonb,updated_at=NOW() WHERE id=%s AND module=%s',
+                                          (json.dumps(record), int(record_id), access['page']['code']), False)
+    except psycopg.Error:
+        return JSONResponse({'error': 'La base de datos del CRM no esta disponible.'}, status_code=503)
+    return {'id': int(record_id)} if changed else JSONResponse(NOT_FOUND, status_code=404)
+
+
+@app.delete('/api/v1/records/{record_id}')
+async def delete_record(record_id: str, request: Request):
+    if not valid_csrf(request):
+        return JSONResponse({'error': 'Verificación de solicitud inválida.'}, status_code=403)
+    if not (record_id.isascii() and record_id.isdigit() and len(record_id) <= 15):
+        return JSONResponse(NOT_FOUND, status_code=404)
+    status, access = await authorize_action(request, 'eliminar')
+    if status != 200:
+        return JSONResponse(access, status_code=status)
+    try:
+        changed = await run_in_threadpool(query, 'DELETE FROM records WHERE id=%s AND module=%s',
+                                          (int(record_id), access['page']['code']), False)
+    except psycopg.Error:
+        return JSONResponse({'error': 'La base de datos del CRM no esta disponible.'}, status_code=503)
+    return {'ok': True} if changed else JSONResponse(NOT_FOUND, status_code=404)
+
+
 @app.api_route('/api/{endpoint:path}', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 async def unknown_api(endpoint: str):
     return JSONResponse({'error': 'Endpoint no disponible.'}, status_code=404)

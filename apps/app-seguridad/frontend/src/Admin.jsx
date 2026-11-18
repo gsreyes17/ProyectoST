@@ -13,7 +13,8 @@ import {
   dateTime,
   duration,
 } from "./ui";
-import Editor from "./Editors";
+import Editor, { kindNames } from "./Editors";
+import Matrix from "./Matrix";
 
 const sections = [
   ["overview", "Resumen", "Tu seguridad, de un vistazo"],
@@ -24,7 +25,17 @@ const sections = [
     "Un punto de acceso para todo tu ecosistema",
   ],
   ["roles", "Roles y permisos", "El acceso correcto para cada persona"],
+  [
+    "matrix",
+    "Matriz de permisos",
+    "Qué ve y qué puede hacer cada rol, de un vistazo",
+  ],
   ["menus", "Menús", "La navegación que cada rol necesita"],
+  [
+    "capabilities",
+    "Grillas y botones",
+    "Lo que cada rol puede ver y hacer dentro de cada pantalla",
+  ],
   ["sessions", "Sesiones", "Control sobre los accesos vigentes"],
   ["audit", "Auditoría", "Cada acceso deja una historia"],
 ];
@@ -33,7 +44,9 @@ const sectionIcon = {
   users: "users",
   applications: "apps",
   roles: "roles",
+  matrix: "table",
   menus: "menus",
+  capabilities: "layout",
   sessions: "sessions",
   audit: "audit",
 };
@@ -41,6 +54,7 @@ const editorTitles = {
   user: "usuario",
   role: "rol",
   menu: "menú",
+  capability: "elemento",
   application: "aplicación",
 };
 const eventNames = {
@@ -56,6 +70,9 @@ const eventNames = {
   MENUS_ASIGNADOS: "Menús asignados",
   MENU_CREADO: "Menú creado",
   MENU_EDITADO: "Menú actualizado",
+  CAPACIDAD_CREADA: "Elemento de pantalla creado",
+  CAPACIDAD_EDITADA: "Elemento de pantalla actualizado",
+  CAPACIDADES_ASIGNADAS: "Grillas y botones asignados",
   ROLES_ASIGNADOS: "Roles asignados",
   APLICACIONES_ASIGNADAS: "Aplicaciones asignadas",
   SESION_REVOCADA: "Sesión revocada",
@@ -75,6 +92,7 @@ export default function Admin({ session, config, onLogout }) {
     apps: [],
     roles: [],
     menus: [],
+    capabilities: [],
   });
   const [payload, setPayload] = useState(null);
   const data = payload?.section === section ? payload.value : null;
@@ -114,11 +132,12 @@ export default function Admin({ session, config, onLogout }) {
       api("/admin/applications"),
       api("/admin/roles"),
       api("/admin/menus"),
+      api("/admin/capabilities"),
       api("/admin/overview"),
     ])
-      .then(([apps, roles, menus, summary]) => {
+      .then(([apps, roles, menus, capabilities, summary]) => {
         if (alive) {
-          setReference({ apps, roles, menus });
+          setReference({ apps, roles, menus, capabilities });
           setOverview(summary);
         }
       })
@@ -136,6 +155,11 @@ export default function Admin({ session, config, onLogout }) {
     const timeout = setTimeout(
       async () => {
         try {
+          // La matriz se calcula con los catálogos ya cargados en `reference`.
+          if (section === "matrix") {
+            if (alive) setPayload({ section, value: {} });
+            return;
+          }
           const query = new URLSearchParams({
             search,
             page,
@@ -207,6 +231,8 @@ export default function Admin({ session, config, onLogout }) {
               item.email,
               item.full_name,
               item.app_name,
+              item.code,
+              item.menu_name,
             ])
               .toLowerCase()
               .includes(search.toLowerCase())),
@@ -221,6 +247,7 @@ export default function Admin({ session, config, onLogout }) {
     applications: "application",
     roles: "role",
     menus: "menu",
+    capabilities: "capability",
   }[section];
   const applicationName = (id) =>
     reference.apps.find((app) => app.id === id)?.name || "—";
@@ -434,9 +461,11 @@ export default function Admin({ session, config, onLogout }) {
                     ? "Nueva aplicación"
                     : section === "menus"
                       ? "Nuevo menú"
-                      : section === "roles"
-                        ? "Nuevo rol"
-                        : "Nuevo usuario"}
+                      : section === "capabilities"
+                        ? "Nuevo elemento"
+                        : section === "roles"
+                          ? "Nuevo rol"
+                          : "Nuevo usuario"}
                 </Button>
               )}
             </div>
@@ -687,6 +716,11 @@ export default function Admin({ session, config, onLogout }) {
                     </section>
                   ))}
                 </div>
+              ) : section === "matrix" ? (
+                <Matrix
+                  {...reference}
+                  onEditRole={(role) => setEditor({ type: "role", item: role })}
+                />
               ) : (
                 <section className="panel">
                   <div className="table-toolbar">
@@ -707,7 +741,7 @@ export default function Admin({ session, config, onLogout }) {
                       />
                     </div>
                     <div className="table-filters">
-                      {["roles", "menus"].includes(section) && (
+                      {["roles", "menus", "capabilities"].includes(section) && (
                         <select
                           aria-label="Filtrar por aplicación"
                           value={appFilter}
@@ -784,7 +818,7 @@ export default function Admin({ session, config, onLogout }) {
                                   "Rol",
                                   "Aplicación",
                                   "Sesión máxima",
-                                  "Opciones",
+                                  "Permisos",
                                   "Usuarios",
                                   "Estado",
                                   "",
@@ -794,6 +828,15 @@ export default function Admin({ session, config, onLogout }) {
                                   "Aplicación",
                                   "Código / Ruta",
                                   "Orden",
+                                  "Estado",
+                                  "",
+                                ],
+                                capabilities: [
+                                  "Elemento",
+                                  "Aplicación",
+                                  "Pantalla",
+                                  "Código",
+                                  "Roles",
                                   "Estado",
                                   "",
                                 ],
@@ -926,7 +969,7 @@ export default function Admin({ session, config, onLogout }) {
                                 <td>
                                   {role.is_system_admin
                                     ? "Administración interna"
-                                    : `${role.menu_ids.length} opciones`}
+                                    : `${role.menu_ids.length} pantallas · ${role.capability_ids.length} elementos`}
                                 </td>
                                 <td>{role.users_count}</td>
                                 <td>{activeBadge(role.active)}</td>
@@ -965,6 +1008,49 @@ export default function Admin({ session, config, onLogout }) {
                                 <td>{menu.position}</td>
                                 <td>{activeBadge(menu.active)}</td>
                                 <td>{editButton("menu", menu)}</td>
+                              </tr>
+                            ))}
+                          {section === "capabilities" &&
+                            items.map((capability) => (
+                              <tr key={capability.id}>
+                                <td>
+                                  <div className="name-cell">
+                                    <span className="small-symbol">
+                                      <Icon
+                                        name={
+                                          {
+                                            grid: "layout",
+                                            button: "check",
+                                            column: "eye",
+                                          }[capability.kind]
+                                        }
+                                        size={18}
+                                      />
+                                    </span>
+                                    <span>
+                                      <strong>{capability.name}</strong>
+                                      <small>
+                                        {kindNames[capability.kind]}
+                                      </small>
+                                    </span>
+                                  </div>
+                                </td>
+                                <td>{capability.app_name}</td>
+                                <td>{capability.menu_name}</td>
+                                <td>
+                                  <code>{capability.code}</code>
+                                </td>
+                                <td>
+                                  {
+                                    reference.roles.filter((role) =>
+                                      role.capability_ids.includes(
+                                        capability.id,
+                                      ),
+                                    ).length
+                                  }
+                                </td>
+                                <td>{activeBadge(capability.active)}</td>
+                                <td>{editButton("capability", capability)}</td>
                               </tr>
                             ))}
                           {section === "sessions" &&
@@ -1042,6 +1128,17 @@ export default function Admin({ session, config, onLogout }) {
                   </span>
                 </div>
               )}
+              {section === "capabilities" && (
+                <div className="help-note">
+                  <Icon name="alert" size={18} />
+                  <span>
+                    Cada elemento es un permiso que la aplicación consulta antes
+                    de mostrar una grilla, un botón o una columna, y que su
+                    backend vuelve a comprobar al ejecutar la operación. Se
+                    asignan a cada rol desde Roles y permisos.
+                  </span>
+                </div>
+              )}
               {section === "roles" && (
                 <div className="help-note">
                   <Icon name="sessions" size={18} />
@@ -1075,11 +1172,11 @@ export default function Admin({ session, config, onLogout }) {
           }
           description={
             editor.type === "role"
-              ? "Define los accesos y el tiempo de sesión de este rol."
+              ? "Define las pantallas, grillas, botones y el tiempo de sesión de este rol."
               : undefined
           }
           onClose={() => setEditor(null)}
-          wide={editor.type === "user"}
+          wide={["user", "role"].includes(editor.type)}
         >
           <Editor
             key={`${editor.type}-${editor.item?.id || "new"}`}

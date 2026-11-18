@@ -9,7 +9,7 @@ Esta carpeta es el limite de desarrollo de Seguridad Transversal. Leer este arch
 
 ## Responsabilidad
 
-Administrar identidad, Argon2id, politica MFA por usuario, sesiones opacas, revocacion, roles, menus y auditoria. Conservar la compatibilidad de la API documentada. No conectar a las bases de negocio. Los cambios de contratos deben coordinarse con los otros chats.
+Administrar identidad, Argon2id, politica MFA por usuario, sesiones opacas, revocacion, roles, menus, capacidades (grillas, botones y columnas por rol) y auditoria. Conservar la compatibilidad de la API documentada. No conectar a las bases de negocio. Los cambios de contratos deben coordinarse con los otros chats.
 
 Las pruebas de seguridad se ubican en `backend/tests` y se ejecutan con `pnpm test` desde la raiz. No reinicializar ni borrar cuentas existentes para probar.
 

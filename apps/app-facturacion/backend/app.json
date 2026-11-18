@@ -10,19 +10,48 @@
       "code": "facturacion.comprobantes",
       "name": "Comprobantes",
       "route": "/comprobantes",
-      "icon": "file"
+      "icon": "file",
+      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
+      "columns": [
+        { "key": "numero", "label": "Número", "type": "text" },
+        { "key": "cliente", "label": "Cliente", "type": "text" },
+        { "key": "fecha", "label": "Fecha", "type": "date" },
+        { "key": "total", "label": "Total", "type": "number" },
+        {
+          "key": "descuento",
+          "label": "Descuento",
+          "type": "number",
+          "protected": true
+        }
+      ]
     },
     {
       "code": "facturacion.series",
       "name": "Series y numeración",
       "route": "/series",
-      "icon": "layers"
+      "icon": "layers",
+      "actions": ["ver", "crear", "editar"],
+      "columns": [
+        { "key": "serie", "label": "Serie", "type": "text" },
+        { "key": "tipo", "label": "Tipo de comprobante", "type": "text" },
+        {
+          "key": "correlativo",
+          "label": "Correlativo actual",
+          "type": "number"
+        }
+      ]
     },
     {
       "code": "facturacion.reportes",
       "name": "Reportes de facturación",
       "route": "/reportes",
-      "icon": "chart"
+      "icon": "chart",
+      "actions": ["ver", "exportar"],
+      "columns": [
+        { "key": "indicador", "label": "Indicador", "type": "text" },
+        { "key": "periodo", "label": "Periodo", "type": "text" },
+        { "key": "valor", "label": "Valor", "type": "number" }
+      ]
     }
   ]
 }

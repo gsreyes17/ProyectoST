@@ -53,6 +53,17 @@ const roleSchema = z.object({
   duration_minutes: z.coerce.number().int().min(1).max(1440),
   active: z.boolean().default(true),
   menu_ids: ids.default([]),
+  // Opcional: si se omite, se conservan las capacidades de las pantallas que sigan asignadas.
+  capability_ids: ids.optional(),
+});
+const capabilitySchema = z.object({
+  app_id: idSchema,
+  menu_id: idSchema,
+  code: z.string().regex(/^[a-z][a-z0-9_.-]{1,119}$/),
+  name: label,
+  kind: z.enum(["grid", "button", "column"]),
+  position: z.coerce.number().int().min(0).max(1000).default(0),
+  active: z.boolean().default(true),
 });
 const menuSchema = z.object({
   app_id: idSchema,
@@ -320,6 +331,7 @@ admin.get("/roles", async (req, res) =>
     (
       await pool.query(`SELECT r.*,a.name AS app_name,
   COALESCE((SELECT json_agg(rm.menu_id) FROM role_menus rm WHERE rm.role_id=r.id),'[]') AS menu_ids,
+  COALESCE((SELECT json_agg(rc.capability_id) FROM role_capabilities rc WHERE rc.role_id=r.id),'[]') AS capability_ids,
   (SELECT COUNT(*)::int FROM user_roles ur WHERE ur.role_id=r.id) AS users_count
   FROM roles r JOIN applications a ON a.id=r.app_id ORDER BY r.id`)
     ).rows,
@@ -334,6 +346,35 @@ async function setRoleMenus(db, roleId, appId, selected) {
     await db.query(
       "INSERT INTO role_menus(role_id,menu_id,app_id) VALUES($1,$2,$3)",
       [roleId, menuId, appId],
+    );
+  }
+  // Retirar una pantalla retira sus grillas, botones y columnas: volver a
+  // asignarla después no restaura esos permisos de forma silenciosa.
+  await db.query(
+    `DELETE FROM role_capabilities rc USING capabilities c
+    WHERE rc.capability_id=c.id AND rc.role_id=$1
+    AND c.menu_id NOT IN (SELECT menu_id FROM role_menus WHERE role_id=$1)`,
+    [roleId],
+  );
+}
+async function setRoleCapabilities(db, roleId, appId, selected) {
+  await db.query("DELETE FROM role_capabilities WHERE role_id=$1", [roleId]);
+  for (const capabilityId of new Set(selected)) {
+    const capability = await existing(db, "capabilities", capabilityId);
+    if (capability.app_id !== appId)
+      throw new HttpError(400, "Selecciona elementos de la misma aplicación.");
+    const { rowCount } = await db.query(
+      "SELECT 1 FROM role_menus WHERE role_id=$1 AND menu_id=$2",
+      [roleId, capability.menu_id],
+    );
+    if (!rowCount)
+      throw new HttpError(
+        400,
+        "Asigna primero la pantalla a la que pertenece cada elemento.",
+      );
+    await db.query(
+      "INSERT INTO role_capabilities(role_id,capability_id,app_id) VALUES($1,$2,$3)",
+      [roleId, capabilityId, appId],
     );
   }
 }
@@ -354,6 +395,12 @@ admin.post("/roles", async (req, res) => {
         ],
       );
       await setRoleMenus(db, rows[0].id, data.app_id, data.menu_ids);
+      await setRoleCapabilities(
+        db,
+        rows[0].id,
+        data.app_id,
+        data.capability_ids || [],
+      );
       return rows[0];
     }),
   );
@@ -371,6 +418,8 @@ admin.patch("/roles/:id", async (req, res) => {
         [data.name, data.description, data.duration_minutes, data.active, id],
       );
       await setRoleMenus(db, id, data.app_id, data.menu_ids);
+      if (data.capability_ids)
+        await setRoleCapabilities(db, id, data.app_id, data.capability_ids);
       if (!data.active || previous.duration_minutes !== data.duration_minutes) {
         await db.query(
           "UPDATE sessions SET revoked_at=NOW() WHERE role_id=$1 AND revoked_at IS NULL",
@@ -396,6 +445,99 @@ admin.put("/roles/:id/menus", async (req, res) => {
     }),
   );
 });
+admin.put("/roles/:id/capabilities", async (req, res) => {
+  const id = validate(idSchema, req.params.id);
+  const selected = validate(
+    z.object({ capability_ids: ids }),
+    req.body,
+  ).capability_ids;
+  res.json(
+    await change(req, "CAPACIDADES_ASIGNADAS", async (db) => {
+      const role = await existing(db, "roles", id);
+      await setRoleCapabilities(db, id, role.app_id, selected);
+      return { id };
+    }),
+  );
+});
+admin.get("/capabilities", async (req, res) =>
+  res.json(
+    (
+      await pool.query(
+        `SELECT c.*,a.name AS app_name,m.name AS menu_name,m.code AS menu_code
+        FROM capabilities c JOIN applications a ON a.id=c.app_id JOIN menus m ON m.id=c.menu_id
+        ORDER BY c.app_id,m.position,m.id,c.position,c.id`,
+      )
+    ).rows,
+  ),
+);
+async function saveCapability(req, update) {
+  const data = validate(capabilitySchema, req.body);
+  const id = update ? validate(idSchema, req.params.id) : null;
+  return change(
+    req,
+    update ? "CAPACIDAD_EDITADA" : "CAPACIDAD_CREADA",
+    async (db) => {
+      if (id) {
+        const previous = await existing(db, "capabilities", id);
+        if (
+          previous.app_id !== data.app_id ||
+          previous.menu_id !== data.menu_id ||
+          previous.code !== data.code
+        )
+          throw new HttpError(
+            400,
+            "El código, la pantalla y la aplicación permanecen estables.",
+          );
+        await db.query(
+          "UPDATE capabilities SET name=$1,kind=$2,position=$3,active=$4 WHERE id=$5",
+          [data.name, data.kind, data.position, data.active, id],
+        );
+        return { id };
+      }
+      const app = await existing(db, "applications", data.app_id);
+      if (app.is_internal)
+        throw new HttpError(400, "Los permisos internos son reservados.");
+      const menu = await existing(db, "menus", data.menu_id);
+      if (menu.app_id !== data.app_id || !menu.route)
+        throw new HttpError(
+          400,
+          "Selecciona una pantalla de la misma aplicación.",
+        );
+      // El prefijo evita colisiones con los códigos de pantalla en la introspección.
+      if (!data.code.startsWith(`${menu.code}.`))
+        throw new HttpError(
+          400,
+          `El código debe comenzar con «${menu.code}.», por ejemplo ${menu.code}.crear.`,
+        );
+      const { rowCount } = await db.query(
+        "SELECT 1 FROM menus WHERE app_id=$1 AND code=$2",
+        [data.app_id, data.code],
+      );
+      if (rowCount)
+        throw new HttpError(409, "Ya existe una pantalla con ese código.");
+      return (
+        await db.query(
+          "INSERT INTO capabilities(app_id,menu_id,code,name,kind,position,active) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+          [
+            data.app_id,
+            data.menu_id,
+            data.code,
+            data.name,
+            data.kind,
+            data.position,
+            data.active,
+          ],
+        )
+      ).rows[0];
+    },
+  );
+}
+admin.post("/capabilities", async (req, res) =>
+  res.status(201).json(await saveCapability(req, false)),
+);
+admin.patch("/capabilities/:id", async (req, res) =>
+  res.json(await saveCapability(req, true)),
+);
 admin.get("/menus", async (req, res) =>
   res.json(
     (
@@ -433,6 +575,15 @@ async function saveMenu(req, update) {
       );
       return { id };
     }
+    if (
+      (
+        await db.query(
+          "SELECT 1 FROM capabilities WHERE app_id=$1 AND code=$2",
+          [data.app_id, data.code],
+        )
+      ).rowCount
+    )
+      throw new HttpError(409, "Ya existe un elemento con ese código.");
     return (
       await db.query(
         "INSERT INTO menus(app_id,code,name,route,icon,position,parent_id,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",

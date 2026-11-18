@@ -403,6 +403,96 @@ test("cambiar menús aplica a la siguiente petición sin renovar la sesión", as
     menu_ids: [menuId],
   }).expect(200);
 });
+test("grillas, botones y columnas se autorizan por rol y dependen de su pantalla", async () => {
+  const create = (code, kind, menu = menuId) =>
+    adminWrite("post", "/capabilities", {
+      app_id: appId,
+      menu_id: menu,
+      code,
+      name: `Elemento ${code}`,
+      kind,
+    });
+  const grid = (await create("crm.clientes.ver", "grid").expect(201)).body.id;
+  const button = (await create("crm.clientes.crear", "button").expect(201)).body
+    .id;
+  const report = (
+    await create("crm.reportes.exportar", "button", extraMenuId).expect(201)
+  ).body.id;
+  // El código debe pertenecer a su pantalla y no repetirse.
+  await create("otra.cosa", "button").expect(400);
+  await create("crm.clientes.ver", "grid").expect(409);
+  await create("crm.clientes.x", "ventana").expect(400);
+
+  const session = await login(await newUser(appId, [roleId], true));
+  const check = (permission, status) =>
+    client("post", "/auth/introspect", session.sessionToken)
+      .send({ permission })
+      .expect(status);
+  await check("crm.clientes.ver", 403);
+  await adminWrite("put", `/roles/${roleId}/capabilities`, {
+    capability_ids: [grid],
+  }).expect(200);
+  // Se aplica en la siguiente petición, sin renovar la sesión.
+  const granted = await check("crm.clientes.ver", 200);
+  assert.deepEqual(granted.body.capabilities, ["crm.clientes.ver"]);
+  assert.deepEqual(granted.body.permissions, ["crm.clientes"]);
+  await check("crm.clientes.crear", 403);
+  const identity = await client("get", "/me", session.sessionToken).expect(200);
+  assert.deepEqual(identity.body.capabilities, ["crm.clientes.ver"]);
+
+  // Un elemento de una pantalla no asignada al rol, o de otra aplicación, se rechaza.
+  await adminWrite("put", `/roles/${roleId}/capabilities`, {
+    capability_ids: [grid, report],
+  }).expect(400);
+  const foreignRole = (
+    await owner.query(
+      "INSERT INTO roles(app_id,name,duration_minutes) VALUES($1,'Ajeno capacidades',60) RETURNING id",
+      [otherAppId],
+    )
+  ).rows[0].id;
+  await adminWrite("put", `/roles/${foreignRole}/capabilities`, {
+    capability_ids: [grid],
+  }).expect(400);
+  await check("crm.clientes.ver", 200);
+
+  // Desactivar el elemento lo retira de inmediato.
+  const body = {
+    app_id: appId,
+    menu_id: menuId,
+    code: "crm.clientes.ver",
+    name: "Ver grilla",
+    kind: "grid",
+  };
+  await adminWrite("patch", `/capabilities/${grid}`, {
+    ...body,
+    active: false,
+  }).expect(200);
+  await check("crm.clientes.ver", 403);
+  await adminWrite("patch", `/capabilities/${grid}`, body).expect(200);
+  await adminWrite("patch", `/capabilities/${grid}`, {
+    ...body,
+    code: "crm.clientes.otro",
+  }).expect(400);
+
+  // Retirar la pantalla retira sus elementos; devolverla no los restaura.
+  await adminWrite("put", `/roles/${roleId}/capabilities`, {
+    capability_ids: [grid, button],
+  }).expect(200);
+  await adminWrite("put", `/roles/${roleId}/menus`, { menu_ids: [] }).expect(
+    200,
+  );
+  await check("crm.clientes.crear", 403);
+  await adminWrite("put", `/roles/${roleId}/menus`, {
+    menu_ids: [menuId],
+  }).expect(200);
+  await check("crm.clientes", 200);
+  await check("crm.clientes.crear", 403);
+  const roles = await adminAgent.get("/api/v1/admin/roles").expect(200);
+  assert.deepEqual(
+    roles.body.find((role) => role.id === roleId).capability_ids,
+    [],
+  );
+});
 test("editar duración revoca sesiones y el próximo ingreso utiliza el nuevo tiempo", async () => {
   const user = await newUser(appId, [roleId], true);
   const session = await login(user);

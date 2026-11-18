@@ -13,7 +13,9 @@ Implementar solo funciones de negocio de esta app. No editar otras aplicaciones 
 
 Antes de consultar SQL, validar la sesion y el permiso en IAM mediante HTTP. Obtener el usuario del resultado validado. No crear un login local ni copiar tablas de seguridad. El endpoint `GET /api/v1/integration/status` y el registro `integration_access` demuestran la separacion de bases.
 
-Agregar pantallas en `frontend/src/pages`, actualizar el catalogo `backend/app.json` y registrar sus opciones/permisos en IAM por API administrativa. Agregar nuevas tablas con migraciones numeradas. No cambiar la politica MFA, expiracion ni credenciales centrales.
+Agregar pantallas en `frontend/src/pages`, actualizar el catalogo `backend/app.json` y registrar sus opciones/permisos en IAM por API administrativa.
+
+Cada pantalla tiene una grilla sobre la tabla local `records` y botones protegidos por capacidades (`<pantalla>.ver|crear|editar|eliminar|exportar`, `<pantalla>.col.<columna>`). Todo endpoint que lea o escriba datos pide su capacidad exacta a `auth/introspect` antes del SQL y exige CSRF en las escrituras. El frontend solo usa `capabilities` de `/me` para mostrar u ocultar; no sustituye la comprobacion del backend. Un boton nuevo requiere: endpoint protegido, capacidad registrada en IAM y condicion en la pantalla. Agregar nuevas tablas con migraciones numeradas. No cambiar la politica MFA, expiracion ni credenciales centrales.
 
 ## Comprobacion local
 

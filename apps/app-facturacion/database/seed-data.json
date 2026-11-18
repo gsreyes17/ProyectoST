@@ -1,0 +1,89 @@
+{
+  "facturacion.comprobantes": [
+    {
+      "numero": "F001-00001248",
+      "cliente": "Clínica San Gabriel SA",
+      "fecha": "2026-11-09",
+      "total": 18650,
+      "descuento": 930
+    },
+    {
+      "numero": "F001-00001249",
+      "cliente": "Distribuidora del Sur EIRL",
+      "fecha": "2026-11-10",
+      "total": 4720,
+      "descuento": 0
+    },
+    {
+      "numero": "B001-00008713",
+      "cliente": "Cliente varios",
+      "fecha": "2026-11-10",
+      "total": 94.9,
+      "descuento": 0
+    },
+    {
+      "numero": "F001-00001250",
+      "cliente": "Minera Altiplano SA",
+      "fecha": "2026-11-11",
+      "total": 52300,
+      "descuento": 2615
+    },
+    {
+      "numero": "B001-00008714",
+      "cliente": "Cliente varios",
+      "fecha": "2026-11-12",
+      "total": 312,
+      "descuento": 15
+    },
+    {
+      "numero": "F001-00001251",
+      "cliente": "Hotel Mirador del Lago SAC",
+      "fecha": "2026-11-12",
+      "total": 7840,
+      "descuento": 240
+    },
+    {
+      "numero": "FC01-00000039",
+      "cliente": "Comercial Andina SAC",
+      "fecha": "2026-11-13",
+      "total": 590,
+      "descuento": 0
+    },
+    {
+      "numero": "F001-00001252",
+      "cliente": "Agroexportadora Valle Verde SAC",
+      "fecha": "2026-11-14",
+      "total": 23100,
+      "descuento": 1155
+    }
+  ],
+  "facturacion.series": [
+    {
+      "serie": "F002",
+      "tipo": "Factura (sucursal Arequipa)",
+      "correlativo": 418
+    },
+    {
+      "serie": "B002",
+      "tipo": "Boleta de venta (sucursal Arequipa)",
+      "correlativo": 2960
+    },
+    { "serie": "FD01", "tipo": "Nota de débito", "correlativo": 7 },
+    { "serie": "T001", "tipo": "Guía de remisión", "correlativo": 1532 }
+  ],
+  "facturacion.reportes": [
+    {
+      "indicador": "Comprobantes emitidos",
+      "periodo": "2026-09",
+      "valor": 389
+    },
+    { "indicador": "Total facturado", "periodo": "2026-09", "valor": 251900 },
+    { "indicador": "Notas de crédito", "periodo": "2026-09", "valor": 8 },
+    {
+      "indicador": "Descuentos otorgados",
+      "periodo": "2026-10",
+      "valor": 11840
+    },
+    { "indicador": "Ticket promedio", "periodo": "2026-10", "valor": 695 }
+  ]
+}

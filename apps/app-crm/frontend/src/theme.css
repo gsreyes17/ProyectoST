@@ -1,0 +1,214 @@
+/* Identidad visual del CRM: clara, redondeada y comercial.
+   Solo presentación; se carga después de demo.css y no afecta a las otras apps. */
+.demo-shell {
+  --demo-sidebar-bg: #ffffff;
+  background: #f2f6fe;
+  color: #1e2a44;
+}
+.demo-sidebar {
+  border-right: 1px solid #e1e8f7;
+  color: #33415f;
+  box-shadow: 4px 0 24px #1e3a8a0a;
+}
+.demo-brand-icon {
+  width: 40px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #60a5fa);
+  color: #fff;
+}
+.demo-brand-name {
+  color: #14213d;
+  font-weight: 700;
+}
+.demo-nav-link,
+.demo-nav-heading {
+  width: calc(100% - 24px);
+  margin: 2px 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  color: #55627f;
+}
+.demo-nav-heading {
+  color: #2b3856;
+}
+.demo-nav-link svg,
+.demo-nav-heading svg,
+.demo-nav-heading .demo-nav-chevron {
+  color: #8a97b5;
+}
+.demo-nav-link:hover,
+.demo-nav-heading:hover {
+  background: #eef3ff;
+  color: var(--accent);
+}
+.demo-nav-children {
+  background: transparent;
+}
+.demo-nav-link.nested {
+  padding-left: 26px;
+}
+.demo-nav-link.selected {
+  background: #e4edff;
+  color: var(--accent);
+}
+.demo-nav-link.selected::before {
+  display: none;
+}
+.demo-nav-link.selected svg,
+.demo-nav-heading.current-group svg {
+  color: var(--accent);
+}
+.demo-sidebar-footer {
+  border-top-color: #e1e8f7;
+}
+.demo-logout {
+  border-radius: 12px;
+  color: #55627f;
+}
+.demo-logout:hover {
+  background: #fef1f2;
+  color: #cf475c;
+}
+.demo-mobile-close {
+  background: #eef3ff;
+  color: #55627f;
+}
+.demo-topbar {
+  border-bottom: 0;
+  background: transparent;
+}
+.demo-topbar h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #14213d;
+}
+.demo-sidebar-toggle {
+  border-color: #dfe6f5;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--accent);
+}
+.demo-sidebar-toggle:hover {
+  background: #eef3ff;
+}
+.demo-user {
+  padding: 5px 6px 5px 16px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 10px #1e3a8a12;
+}
+.demo-user-text small {
+  color: var(--accent);
+  font-weight: 600;
+}
+.demo-user .avatar {
+  background: #e4edff;
+  color: var(--accent);
+}
+.demo-content {
+  padding-top: 8px;
+}
+.demo-home,
+.demo-page .panel {
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 8px 28px #1e3a8a12;
+}
+.demo-shell .button {
+  padding-inline: 18px;
+  border-radius: 999px;
+}
+.demo-shell .button.primary {
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.demo-grid th {
+  padding-block: 16px;
+  border-top: 0;
+  background: transparent;
+  color: #7c89a8;
+}
+.demo-grid td {
+  color: #33415f;
+}
+.demo-grid td:first-child {
+  color: #14213d;
+  font-weight: 600;
+}
+.demo-grid tbody tr:hover {
+  background: #f5f8ff;
+}
+.demo-grid .icon-button {
+  border-radius: 50%;
+}
+.demo-page-toolbar p {
+  color: #7c89a8;
+}
+.demo-shell .modal {
+  border-radius: 20px;
+}
+.demo-shell .field input {
+  border-radius: 12px;
+}
+
+/* Inicio de sesión del CRM: formulario a la izquierda y panel azul flotante
+   a la derecha. Solo cambia el diseño; el flujo de acceso es el de IAM. */
+.demo-crm .auth-form-area h2 {
+  color: #14213d;
+  font-weight: 700;
+}
+.demo-crm .auth-step-icon {
+  border: 0;
+  border-radius: 50%;
+  background: #e4edff;
+}
+.demo-crm .field input {
+  border-radius: 12px;
+}
+.demo-crm .button {
+  border-radius: 999px;
+}
+.demo-crm .button.primary {
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.demo-crm .role-options button,
+.demo-crm .qr-enrollment,
+.demo-crm .info-box {
+  border-radius: 16px;
+}
+@media (min-width: 851px) {
+  .auth-layout.demo-crm {
+    grid-template-columns: minmax(460px, 1fr) minmax(420px, 1fr);
+    background: #f2f6fe;
+  }
+  .demo-crm .auth-main {
+    order: 1;
+  }
+  .demo-crm .auth-story {
+    order: 2;
+    margin: 18px;
+    padding: 40px 48px;
+    border-radius: 30px;
+    background: linear-gradient(155deg, #1d4ed8, #2563eb 45%, #60a5fa);
+    box-shadow: 0 24px 60px #1d4ed833;
+  }
+  .demo-crm .auth-brand .brand-symbol {
+    border: 0;
+    border-radius: 14px;
+    background: #ffffff26;
+    color: #fff;
+  }
+  .demo-crm .auth-brand small,
+  .demo-crm .eyebrow.light,
+  .demo-crm .auth-story-content > p,
+  .demo-crm .auth-benefits span {
+    color: #dbe7ff;
+  }
+  .demo-crm .auth-benefits svg {
+    color: #fff;
+  }
+  .demo-crm .auth-story-footer,
+  .demo-crm .auth-story-footer span {
+    color: #c3d6ff;
+  }
+}

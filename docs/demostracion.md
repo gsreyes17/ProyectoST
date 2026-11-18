@@ -1,16 +1,19 @@
 # Guion de exposición
 
+Paso a paso de la demo. El relato para el público, con los puntos fuertes y las preguntas frecuentes, está en [presentacion.md](presentacion.md).
+
 ## Preparación
 
 1. Inicia PostgreSQL 17 y ejecuta `pnpm run dev` en la raíz del proyecto.
 2. Abre el portal en `http://localhost:4000`.
 3. Usa las credenciales de `.local/admin-inicial.txt`. El primer ingreso requiere enrolar el autenticador y guardar la recuperación.
 4. Si quieres dos cuentas listas para comparar, ejecuta `pnpm run demo:users` y consulta `.local/usuarios-demo.txt`. Sus autenticadores se enrolan al primer ingreso.
+   Para que las grillas tengan más registros ejecuta `pnpm run demo:data` (repetible).
 5. Mantén el portal y los clientes en pestañas distintas, usando siempre `localhost` para evitar confundir cookies de `localhost` y `127.0.0.1`.
 
 ## Explicación inicial
 
-«La aplicación transversal administra la seguridad. CRM, Almacén y Facturación tienen frontend, backend y bases propios y consultan al Core mediante HTTP. En esta edición sus páginas están vacías, pero cada acceso autorizado se registra en la base local de esa app, después de validar el permiso central».
+«La aplicación transversal administra la seguridad. CRM, Almacén y Facturación tienen frontend, backend y bases propios y consultan al Core mediante HTTP. Cada pantalla tiene una grilla y botones sencillos sobre la base local de esa app. La transversal decide por rol qué familias de menú, pantallas, grillas, botones y columnas ve cada usuario, y cada backend lo comprueba antes de leer o escribir».
 
 ## Recorrido principal
 
@@ -18,7 +21,12 @@
 2. **Roles y permisos:** comparar Administrador (300 minutos) y Usuario normal (60 minutos) en CRM. Mostrar que el primero tiene tres opciones y el segundo solo Clientes.
 3. **Usuarios:** crear una cuenta con correo del dominio permitido y una contraseña de al menos 12 caracteres. Habilitar CRM y asignar un rol. También puede asignarse más de un rol para mostrar la selección posterior a MFA.
 4. **MFA:** con «Exigir doble factor» activo en el usuario, abrir CRM en `http://localhost:5001`, ingresar, escanear el QR y confirmar el código. Mostrar que contraseña por sí sola no produce acceso normal cuando MFA está exigido. Guardar los códigos de recuperación.
-5. **Menús:** mostrar solo las opciones del rol activo. Abrir Clientes y explicar que la página existe, aunque no tiene operaciones de negocio.
+5. **Menús, grillas y botones:** mostrar solo las opciones del rol activo. Abrir Clientes con «Usuario normal»: aparece la grilla y el botón Nuevo, pero no Editar, Eliminar, Exportar ni la columna «Límite de crédito». Entrar con «Administrador» y comparar: todos los botones y la columna.
+   - En el portal, **Roles y permisos → Editar** muestra el árbol familia → pantalla → grillas, botones y columnas. Marcar «Botón Exportar» y «Columna Límite de crédito» para «Usuario normal», guardar y recargar CRM: aparecen sin cerrar la sesión.
+   - Quitar «Ver grilla» y recargar: la pantalla indica que el rol no incluye la grilla, aunque conserve sus botones.
+   - **Retiro con la pantalla abierta:** quitar «Botón Nuevo» sin recargar CRM y pulsar Nuevo → Guardar. El backend responde 403 y el botón desaparece. Ocultar un botón es presentación; la autorización está en el servidor.
+   - **Matriz de permisos** (portal): elegir la aplicación y comparar los roles columna por columna. Es la pantalla que resume toda la exposición; pulsar el nombre de un rol abre su edición.
+   - **Grillas y botones** (portal) lista el catálogo de elementos por aplicación y permite registrar otros o desactivarlos para todos los roles.
 6. **URL directa:** con Usuario normal, escribir `http://localhost:5001/reportes`. El backend deniega el acceso aunque se conozca la dirección.
 7. **Edición de permisos:** desde el panel, asignar Reportes al rol y guardar. Volver a la ventana de CRM o recargar para actualizar los menús y abrir la opción. Retirarla y volver a pedir la página para demostrar la denegación.
 8. **Edición de menús:** cambiar un nombre o su orden y actualizar la navegación. Para crear opciones utiliza el catálogo de rutas de `docs/integracion.md`; crear una opción no genera una pantalla.
@@ -30,7 +38,8 @@
 
 ## Detalles que conviene explicar
 
-- Las demos tienen un sidebar con título, menús y cierre de sesión, un header compacto y páginas vacías. La información administrativa de usuarios, roles, MFA y vencimientos se consulta en el portal transversal. Los grupos de menús son desplegables y el sidebar se puede contraer en escritorio.
+- Cada demo tiene un diseño distinto, como si fuera de otro equipo: CRM (claro, barra lateral), Almacén (oscuro, denso, monoespaciado) y Facturación (navegación superior, estilo documento). Su pantalla de acceso también es distinta, pero los pasos (contraseña, doble factor, elección de rol) son los de IAM. La seguridad es la misma en las tres. En CRM y Almacén los grupos de menús son desplegables y la barra lateral se puede contraer; en Facturación la familia aparece como etiqueta antes de sus pantallas.
+- La cabecera de cada demo muestra el usuario y su rol activo, para comparar dos pestañas sin confundirlas. El resto de la información de seguridad (MFA, vencimientos, sesiones) se consulta en el portal transversal.
 
 - **Ingreso rápido:** en Usuarios, editar la cuenta y desactivar «Exigir doble factor». Sus sesiones se cierran; al volver a entrar a cualquiera de las tres demos solo se solicita contraseña y, si corresponde, rol. Reactivar la opción vuelve a pedir el segundo factor. El cambio queda registrado en auditoría.
 

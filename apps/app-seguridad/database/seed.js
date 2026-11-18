@@ -2,7 +2,7 @@ import "../backend/src/load-env.js";
 import { fileURLToPath } from "node:url";
 import { pool, transaction } from "../backend/src/db.js";
 import { digest } from "../backend/src/security.js";
-import { demos } from "../backend/src/demo-catalog.js";
+import { demos, initialGrants } from "../backend/src/demo-catalog.js";
 
 export async function seed() {
   const clients = [];
@@ -37,6 +37,7 @@ export async function seed() {
         [appId, `${demo.slug}.gestion`],
       );
       const menuIds = [];
+      const newCapabilities = [];
       for (const [position, page] of demo.pages.entries()) {
         const { rows: menus } = await db.query(
           `INSERT INTO menus(app_id,code,name,route,icon,position,parent_id) VALUES($1,$2,$3,$4,$5,$6,$7)
@@ -52,6 +53,26 @@ export async function seed() {
           ],
         );
         menuIds.push(menus[0].id);
+        for (const [order, capability] of page.capabilities.entries()) {
+          const { rows: created } = await db.query(
+            `INSERT INTO capabilities(app_id,menu_id,code,name,kind,position) VALUES($1,$2,$3,$4,$5,$6)
+            ON CONFLICT(app_id,code) DO NOTHING RETURNING id`,
+            [
+              appId,
+              menus[0].id,
+              capability.code,
+              capability.name,
+              capability.kind,
+              order,
+            ],
+          );
+          if (created[0])
+            newCapabilities.push({
+              ...capability,
+              id: created[0].id,
+              menuId: menus[0].id,
+            });
+        }
       }
       const existingRoles = await db.query(
         "SELECT 1 FROM roles WHERE app_id=$1 LIMIT 1",
@@ -74,6 +95,28 @@ export async function seed() {
               [roles[0].id, menuId, appId],
             );
       }
+      // Las capacidades recién creadas se conceden a los roles que ya tienen la
+      // pantalla: todas al Administrador, la grilla a cualquier rol y lo indicado
+      // en initialGrants. Las capacidades existentes y sus asignaciones no se tocan.
+      for (const capability of newCapabilities) {
+        const { rows: holders } = await db.query(
+          `SELECT r.id,r.name FROM roles r JOIN role_menus rm ON rm.role_id=r.id
+          WHERE r.app_id=$1 AND rm.menu_id=$2`,
+          [appId, capability.menuId],
+        );
+        for (const role of holders) {
+          const grant = initialGrants[role.name];
+          if (
+            grant === "*" ||
+            capability.kind === "grid" ||
+            grant?.includes(capability.action)
+          )
+            await db.query(
+              "INSERT INTO role_capabilities(role_id,capability_id,app_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+              [role.id, capability.id, appId],
+            );
+        }
+      }
       clients.push({
         ...demo,
         name: rows[0].name,
@@ -85,7 +128,7 @@ export async function seed() {
     }
   });
   console.log(
-    "Aplicaciones, roles y menús iniciales preparados. No se modificaron usuarios ni permisos existentes.",
+    "Aplicaciones, roles, menús y capacidades iniciales preparados. No se modificaron usuarios ni permisos existentes.",
   );
   return clients;
 }

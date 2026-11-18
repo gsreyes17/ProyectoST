@@ -177,6 +177,142 @@ app.get("/api/v1/demo/page", async (req, res) => {
     access_id: rows[0].id,
   });
 });
+// --- Registros de cada pantalla -------------------------------------------
+// Cada operación solicita a IAM su capacidad exacta (`<pantalla>.<accion>`)
+// antes de consultar la base. Ocultar el botón en React no autoriza nada.
+function validCsrf(req) {
+  const expected = req.cookies[cookieName] ? csrf(req.cookies[cookieName]) : "";
+  const incoming = req.get("X-CSRF-Token") || "";
+  return (
+    Boolean(expected) &&
+    incoming.length === expected.length &&
+    timingSafeEqual(Buffer.from(incoming), Buffer.from(expected))
+  );
+}
+async function authorizeAction(req, action) {
+  const page = settings.pages.find((page) => page.route === req.query.path);
+  if (!page || !page.actions.includes(action))
+    return { status: 404, data: { error: "Operación no disponible." } };
+  const result = await upstream(
+    "/auth/introspect",
+    req,
+    { permission: `${page.code}.${action}` },
+    "POST",
+  );
+  if (result.status !== 200) return result;
+  // Las columnas protegidas solo se leen o escriben con su propia capacidad.
+  const granted = new Set(result.data.capabilities);
+  return {
+    status: 200,
+    page,
+    userId: result.data.session.user_id,
+    columns: page.columns.filter(
+      (column) =>
+        !column.protected || granted.has(`${page.code}.col.${column.key}`),
+    ),
+  };
+}
+function cleanRecord(columns, input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const record = {};
+  for (const column of columns) {
+    let value = input[column.key];
+    if (column.type === "number") {
+      if (typeof value !== "number" || !Number.isFinite(value)) return null;
+    } else {
+      if (typeof value !== "string") return null;
+      value = value.trim();
+      if (!value || value.length > 120) return null;
+      if (column.type === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(value))
+        return null;
+    }
+    record[column.key] = value;
+  }
+  return record;
+}
+const invalidRecord = {
+  error: "Completa todos los campos con valores válidos.",
+};
+app.get("/api/v1/records", async (req, res) => {
+  const access = await authorizeAction(
+    req,
+    req.query.export === "1" ? "exportar" : "ver",
+  );
+  if (access.status !== 200) return res.status(access.status).json(access.data);
+  const { rows } = await db.query(
+    "SELECT id,data,updated_at FROM records WHERE module=$1 ORDER BY id LIMIT 500",
+    [access.page.code],
+  );
+  res.json({
+    columns: access.columns.map(({ key, label, type }) => ({
+      key,
+      label,
+      type,
+    })),
+    items: rows.map((row) => ({
+      id: Number(row.id),
+      updated_at: row.updated_at,
+      data: Object.fromEntries(
+        access.columns.map((column) => [
+          column.key,
+          row.data[column.key] ?? null,
+        ]),
+      ),
+    })),
+  });
+});
+app.post("/api/v1/records", async (req, res) => {
+  if (!validCsrf(req))
+    return res
+      .status(403)
+      .json({ error: "Verificación de solicitud inválida." });
+  const access = await authorizeAction(req, "crear");
+  if (access.status !== 200) return res.status(access.status).json(access.data);
+  const record = cleanRecord(access.columns, req.body?.data);
+  if (!record) return res.status(400).json(invalidRecord);
+  const { rows } = await db.query(
+    "INSERT INTO records(module,data,iam_user_id) VALUES($1,$2,$3) RETURNING id",
+    [access.page.code, JSON.stringify(record), access.userId],
+  );
+  res.status(201).json({ id: Number(rows[0].id) });
+});
+app.patch("/api/v1/records/:id", async (req, res) => {
+  if (!validCsrf(req))
+    return res
+      .status(403)
+      .json({ error: "Verificación de solicitud inválida." });
+  if (!/^\d{1,15}$/.test(req.params.id))
+    return res.status(404).json({ error: "Registro no encontrado." });
+  const access = await authorizeAction(req, "editar");
+  if (access.status !== 200) return res.status(access.status).json(access.data);
+  const record = cleanRecord(access.columns, req.body?.data);
+  if (!record) return res.status(400).json(invalidRecord);
+  // La fusión conserva las columnas protegidas que este rol no puede ver.
+  const { rowCount } = await db.query(
+    "UPDATE records SET data=data||$1::jsonb,updated_at=NOW() WHERE id=$2 AND module=$3",
+    [JSON.stringify(record), req.params.id, access.page.code],
+  );
+  if (!rowCount)
+    return res.status(404).json({ error: "Registro no encontrado." });
+  res.json({ id: Number(req.params.id) });
+});
+app.delete("/api/v1/records/:id", async (req, res) => {
+  if (!validCsrf(req))
+    return res
+      .status(403)
+      .json({ error: "Verificación de solicitud inválida." });
+  if (!/^\d{1,15}$/.test(req.params.id))
+    return res.status(404).json({ error: "Registro no encontrado." });
+  const access = await authorizeAction(req, "eliminar");
+  if (access.status !== 200) return res.status(access.status).json(access.data);
+  const { rowCount } = await db.query(
+    "DELETE FROM records WHERE id=$1 AND module=$2",
+    [req.params.id, access.page.code],
+  );
+  if (!rowCount)
+    return res.status(404).json({ error: "Registro no encontrado." });
+  res.json({ ok: true });
+});
 app.use("/api", (req, res) =>
   res.status(404).json({ error: "Endpoint no disponible." }),
 );

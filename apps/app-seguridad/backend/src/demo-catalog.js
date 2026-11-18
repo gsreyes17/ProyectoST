@@ -1,3 +1,43 @@
+// Catálogo inicial de las demos. Cada pantalla declara sus capacidades:
+// la grilla (ver), los botones (crear, editar, eliminar, exportar) y sus
+// columnas sensibles. Los códigos coinciden con `backend/app.json` de cada app.
+const actions = {
+  ver: ["grid", "Ver grilla"],
+  crear: ["button", "Botón Nuevo"],
+  editar: ["button", "Botón Editar"],
+  eliminar: ["button", "Botón Eliminar"],
+  exportar: ["button", "Botón Exportar"],
+};
+function page(code, name, route, icon, allowed, protectedColumns = {}) {
+  return {
+    code,
+    name,
+    route,
+    icon,
+    capabilities: [
+      ...allowed.map((action) => ({
+        code: `${code}.${action}`,
+        action,
+        kind: actions[action][0],
+        name: actions[action][1],
+      })),
+      ...Object.entries(protectedColumns).map(([key, label]) => ({
+        code: `${code}.col.${key}`,
+        kind: "column",
+        name: `Columna ${label}`,
+      })),
+    ],
+  };
+}
+const all = ["ver", "crear", "editar", "eliminar", "exportar"];
+
+// Asignación inicial por nombre de rol. Solo se aplica a capacidades que la
+// carga inicial acaba de crear; nunca reemplaza permisos editados en el panel.
+export const initialGrants = {
+  Administrador: "*",
+  "Usuario normal": ["ver", "crear"],
+};
+
 export const demos = [
   {
     slug: "crm",
@@ -7,24 +47,23 @@ export const demos = [
     color: "#2563eb",
     description: "Relaciones que impulsan tu negocio.",
     pages: [
-      {
-        code: "crm.clientes",
-        name: "Clientes",
-        route: "/clientes",
-        icon: "users",
-      },
-      {
-        code: "crm.oportunidades",
-        name: "Oportunidades",
-        route: "/oportunidades",
-        icon: "chart",
-      },
-      {
-        code: "crm.reportes",
-        name: "Reportes comerciales",
-        route: "/reportes",
-        icon: "chart",
-      },
+      page("crm.clientes", "Clientes", "/clientes", "users", all, {
+        limite_credito: "Límite de crédito",
+      }),
+      page(
+        "crm.oportunidades",
+        "Oportunidades",
+        "/oportunidades",
+        "chart",
+        all,
+        {
+          margen: "Margen %",
+        },
+      ),
+      page("crm.reportes", "Reportes comerciales", "/reportes", "chart", [
+        "ver",
+        "exportar",
+      ]),
     ],
   },
   {
@@ -35,24 +74,18 @@ export const demos = [
     color: "#059669",
     description: "Cada producto, en su lugar.",
     pages: [
-      {
-        code: "almacen.productos",
-        name: "Productos",
-        route: "/productos",
-        icon: "package",
-      },
-      {
-        code: "almacen.movimientos",
-        name: "Movimientos",
-        route: "/movimientos",
-        icon: "activity",
-      },
-      {
-        code: "almacen.reportes",
-        name: "Reportes de inventario",
-        route: "/reportes",
-        icon: "chart",
-      },
+      page("almacen.productos", "Productos", "/productos", "package", all, {
+        costo: "Costo unitario",
+      }),
+      page("almacen.movimientos", "Movimientos", "/movimientos", "activity", [
+        "ver",
+        "crear",
+        "exportar",
+      ]),
+      page("almacen.reportes", "Reportes de inventario", "/reportes", "chart", [
+        "ver",
+        "exportar",
+      ]),
     ],
   },
   {
@@ -63,24 +96,28 @@ export const demos = [
     color: "#7c3aed",
     description: "Tu operación, en orden.",
     pages: [
-      {
-        code: "facturacion.comprobantes",
-        name: "Comprobantes",
-        route: "/comprobantes",
-        icon: "file",
-      },
-      {
-        code: "facturacion.series",
-        name: "Series y numeración",
-        route: "/series",
-        icon: "layers",
-      },
-      {
-        code: "facturacion.reportes",
-        name: "Reportes de facturación",
-        route: "/reportes",
-        icon: "chart",
-      },
+      page(
+        "facturacion.comprobantes",
+        "Comprobantes",
+        "/comprobantes",
+        "file",
+        all,
+        {
+          descuento: "Descuento",
+        },
+      ),
+      page("facturacion.series", "Series y numeración", "/series", "layers", [
+        "ver",
+        "crear",
+        "editar",
+      ]),
+      page(
+        "facturacion.reportes",
+        "Reportes de facturación",
+        "/reportes",
+        "chart",
+        ["ver", "exportar"],
+      ),
     ],
   },
 ];

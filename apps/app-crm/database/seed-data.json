@@ -1,0 +1,107 @@
+{
+  "crm.clientes": [
+    {
+      "nombre": "Agroexportadora Valle Verde SAC",
+      "ruc": "20512345098",
+      "ciudad": "Ica",
+      "limite_credito": 60000
+    },
+    {
+      "nombre": "Ferretería El Constructor EIRL",
+      "ruc": "20498761234",
+      "ciudad": "Piura",
+      "limite_credito": 12500
+    },
+    {
+      "nombre": "Clínica San Gabriel SA",
+      "ruc": "20133344556",
+      "ciudad": "Lima",
+      "limite_credito": 95000
+    },
+    {
+      "nombre": "Transportes Cordillera SRL",
+      "ruc": "20567890123",
+      "ciudad": "Huancayo",
+      "limite_credito": 22000
+    },
+    {
+      "nombre": "Librería Atenea SAC",
+      "ruc": "20601122334",
+      "ciudad": "Chiclayo",
+      "limite_credito": 6800
+    },
+    {
+      "nombre": "Minera Altiplano SA",
+      "ruc": "20109988776",
+      "ciudad": "Puno",
+      "limite_credito": 150000
+    },
+    {
+      "nombre": "Panificadora Don Julio EIRL",
+      "ruc": "20455566778",
+      "ciudad": "Tacna",
+      "limite_credito": 8200
+    },
+    {
+      "nombre": "Hotel Mirador del Lago SAC",
+      "ruc": "20588899001",
+      "ciudad": "Cajamarca",
+      "limite_credito": 31000
+    }
+  ],
+  "crm.oportunidades": [
+    {
+      "cliente": "Agroexportadora Valle Verde SAC",
+      "etapa": "Negociación",
+      "monto": 48000,
+      "margen": 19
+    },
+    {
+      "cliente": "Clínica San Gabriel SA",
+      "etapa": "Propuesta",
+      "monto": 86500,
+      "margen": 24.5
+    },
+    {
+      "cliente": "Ferretería El Constructor EIRL",
+      "etapa": "Ganada",
+      "monto": 9400,
+      "margen": 28
+    },
+    {
+      "cliente": "Minera Altiplano SA",
+      "etapa": "Contacto inicial",
+      "monto": 210000,
+      "margen": 14
+    },
+    {
+      "cliente": "Transportes Cordillera SRL",
+      "etapa": "Perdida",
+      "monto": 15800,
+      "margen": 21
+    },
+    {
+      "cliente": "Hotel Mirador del Lago SAC",
+      "etapa": "Propuesta",
+      "monto": 27300,
+      "margen": 26
+    },
+    {
+      "cliente": "Distribuidora del Sur EIRL",
+      "etapa": "Ganada",
+      "monto": 12600,
+      "margen": 23
+    }
+  ],
+  "crm.reportes": [
+    { "indicador": "Clientes nuevos", "periodo": "2026-09", "valor": 11 },
+    { "indicador": "Oportunidades ganadas", "periodo": "2026-09", "valor": 4 },
+    {
+      "indicador": "Monto en negociación",
+      "periodo": "2026-09",
+      "valor": 73400
+    },
+    { "indicador": "Tasa de cierre %", "periodo": "2026-10", "valor": 32 },
+    { "indicador": "Ticket promedio", "periodo": "2026-10", "valor": 18450 }
+  ]
+}

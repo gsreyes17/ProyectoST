@@ -43,6 +43,7 @@ import {
   ArrowRight,
   Fingerprint,
   ChevronDown,
+  Table2,
 } from "lucide-react";
 
 export const icons = {
@@ -83,6 +84,7 @@ export const icons = {
   fingerprint: Fingerprint,
   down: ChevronDown,
   layers: Layers3,
+  table: Table2,
 };
 export function Icon({ name, size = 20, ...props }) {
   const Component = icons[name] || LayoutGrid;

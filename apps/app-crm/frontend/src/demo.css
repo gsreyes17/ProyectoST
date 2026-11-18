@@ -188,6 +188,37 @@
   letter-spacing: -0.55px;
   overflow-wrap: anywhere;
 }
+.demo-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-left: auto;
+}
+.demo-user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 34vw;
+  text-align: right;
+  line-height: 1.35;
+}
+.demo-user-text strong,
+.demo-user-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demo-user-text strong {
+  font-size: 13px;
+}
+.demo-user-text small {
+  font-size: 11px;
+  color: #697f73;
+}
+.demo-user .avatar {
+  flex-shrink: 0;
+}
 .demo-sidebar-toggle {
   display: grid;
   place-items: center;
@@ -207,11 +238,74 @@
   padding: 28px 32px;
   outline: none;
 }
-.demo-empty-page {
-  min-height: calc(100dvh - 134px);
+/* Pantallas de negocio: barra de acciones y grilla. Cada botón y columna
+   se muestra solo si el rol tiene su capacidad en IAM. */
+.demo-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 70px 24px;
+  text-align: center;
   background: white;
   border: 1px solid #e5ebe8;
   border-radius: 10px;
+}
+.demo-home > svg {
+  margin-bottom: 18px;
+  color: #8da49a;
+}
+.demo-home h2 {
+  font-size: 20px;
+}
+.demo-home p {
+  max-width: 420px;
+  margin-top: 12px;
+  color: #697f73;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.demo-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.demo-page-toolbar p {
+  color: #697f73;
+  font-size: 13px;
+}
+.demo-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.demo-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border: 1px solid #cfe6d8;
+  border-radius: 8px;
+  background: #f1f9f4;
+  color: #2f6b4a;
+  font-size: 13px;
+}
+.demo-grid th,
+.demo-grid td {
+  font-size: 13px;
+}
+.demo-grid td {
+  color: #33453f;
+}
+.demo-grid .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.demo-page .error-box {
+  margin-bottom: 14px;
 }
 .demo-access-denied {
   display: flex;
@@ -329,9 +423,6 @@
   .demo-content {
     padding: 22px;
   }
-  .demo-empty-page {
-    min-height: calc(100dvh - 114px);
-  }
 }
 @media (max-width: 540px) {
   .demo-topbar {
@@ -344,10 +435,6 @@
   }
   .demo-content {
     padding: 16px;
-  }
-  .demo-empty-page {
-    min-height: calc(100dvh - 98px);
-    border-radius: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

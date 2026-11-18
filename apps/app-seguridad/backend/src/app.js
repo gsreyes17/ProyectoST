@@ -18,6 +18,7 @@ import {
   resolveApplication,
   readSession,
   allowedMenus,
+  allowedCapabilities,
   menuTree,
   audit,
 } from "./services/access.js";
@@ -252,6 +253,7 @@ export function createApp({ serveFrontend = true } = {}) {
         ? csrfToken(req.rawToken)
         : undefined,
       menus: await menuTree(req.session),
+      capabilities: await allowedCapabilities(req.session),
     }),
   );
   app.post(
@@ -281,13 +283,17 @@ export function createApp({ serveFrontend = true } = {}) {
     csrf,
     async (req, res) => {
       const data = validate(
-        z.object({ permission: z.string().max(80).optional() }),
+        z.object({ permission: z.string().max(120).optional() }),
         req.body,
       );
+      // El permiso solicitado puede ser una pantalla (menú) o una capacidad
+      // (grilla, botón o columna) de esa pantalla.
       const permissions = await allowedMenus(req.session);
+      const capabilities = await allowedCapabilities(req.session);
       if (
         data.permission &&
-        !permissions.some((menu) => menu.code === data.permission)
+        !permissions.some((menu) => menu.code === data.permission) &&
+        !capabilities.includes(data.permission)
       ) {
         await audit(pool, {
           userId: req.session.user_id,
@@ -297,12 +303,16 @@ export function createApp({ serveFrontend = true } = {}) {
           ip: req.ip,
           detail: data.permission,
         });
-        throw new HttpError(403, "Tu rol no tiene acceso a esta página.");
+        throw new HttpError(
+          403,
+          "Tu rol no tiene acceso a esta página u operación.",
+        );
       }
       res.json({
         valid: true,
         session: req.session,
         permissions: permissions.map((menu) => menu.code),
+        capabilities,
       });
     },
   );

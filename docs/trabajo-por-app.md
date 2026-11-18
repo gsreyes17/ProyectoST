@@ -17,10 +17,12 @@ Usar una rama/copia de trabajo por chat y fusionar los cambios revisados. Dos ch
 
 Sustituir la app según corresponda. La autorización para nuevas opciones debe incorporarse con los endpoints administrativos de IAM y el permiso debe validarse también en el backend de la app. Un enlace de menú por sí solo no protege una API.
 
+Cada botón, grilla o columna nueva necesita su capacidad (`<pantalla>.<accion>`): el backend la pide a IAM antes de ejecutar, se registra en Portal → Grillas y botones y el frontend la consulta en `capabilities`. Ver «Grillas, botones y columnas» en `docs/integracion.md`.
+
 ## Dónde agregar código
 
 - Frontend: componentes y pantallas en `frontend/src`, empezando por `pages/index.jsx` en las demos.
-- Backend: endpoints y servicios dentro de `backend`; el catálogo de rutas inicial está en `backend/app.json`.
+- Backend: endpoints y servicios dentro de `backend`; el catálogo de rutas, acciones y columnas está en `backend/app.json`.
 - SQL: nueva migración numerada en `database/migrations` y permisos de las nuevas tablas en `database/permissions.sql`; no editar una migración ya aplicada a instalaciones compartidas.
 - Configuración: actualizar solo `.env.example` con nombres/valores de ejemplo; el `.env` real es privado.
 - Contexto: actualizar el README de la app cuando cambien sus módulos, comandos o permisos.

@@ -81,21 +81,30 @@ function App() {
     return (
       <Auth config={config} onAuthenticated={loadIdentity} notice={notice} />
     );
+  // Vuelve a pedir a IAM los menús y las capacidades (grillas, botones, columnas).
+  const refreshSession = async () => {
+    try {
+      await loadIdentity();
+    } catch (error) {
+      if (error.status === 401)
+        window.dispatchEvent(new Event("session-expired"));
+      else setError(error.message);
+    }
+  };
   return (
     <Demo
       config={config}
       {...identity}
       onLogout={logout}
-      renderPage={({ page, path }) => <AppPages page={page} path={path} />}
-      refreshSession={async () => {
-        try {
-          await loadIdentity();
-        } catch (error) {
-          if (error.status === 401)
-            window.dispatchEvent(new Event("session-expired"));
-          else setError(error.message);
-        }
-      }}
+      renderPage={({ page, path }) => (
+        <AppPages
+          page={page}
+          path={path}
+          capabilities={identity.capabilities || []}
+          onDenied={refreshSession}
+        />
+      )}
+      refreshSession={refreshSession}
     />
   );
 }

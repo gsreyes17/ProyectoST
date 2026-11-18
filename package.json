@@ -17,6 +17,7 @@
     "db:seed": "node scripts/seed.mjs",
     "admin:create": "node scripts/create-admin.mjs",
     "demo:users": "node scripts/create-demo-users.mjs",
+    "demo:data": "node scripts/seed-demo-data.mjs",
     "test": "node --test --test-concurrency=1 apps/app-seguridad/backend/tests/*.test.js",
     "test:browser": "node scripts/browser-check.mjs",
     "test:integration": "node scripts/check-integration.mjs",

@@ -2,7 +2,25 @@
 
 Monorepo con cuatro aplicaciones y cuatro bases de datos PostgreSQL 17. La transversal administra la identidad y los permisos; CRM, Almacén y Facturación tienen frontend, backend y persistencia propios.
 
-Las demos conservan una interfaz mínima: título, menús y cierre de sesión. Sus páginas están preparadas para agregar funciones de negocio en otros chats.
+La transversal decide por rol qué **familias de menú, pantallas, grillas, botones y columnas** ve cada usuario. Las tres demos son aplicaciones sencillas: cada pantalla tiene una grilla con registros de su propia base y los botones Nuevo, Editar, Eliminar y Exportar. Todo elemento se muestra solo si el rol activo lo tiene asignado, y cada backend vuelve a comprobarlo en IAM antes de leer o escribir.
+
+## Qué controla cada rol
+
+| Nivel           | Ejemplo                                   | Dónde se administra                     |
+| --------------- | ----------------------------------------- | --------------------------------------- |
+| Familia de menú | Grupo «Gestión»                           | Portal → Menús                          |
+| Pantalla        | `crm.clientes` (`/clientes`)              | Portal → Menús y Roles y permisos       |
+| Grilla          | `crm.clientes.ver`                        | Portal → Grillas y botones              |
+| Botón           | `crm.clientes.crear`, `.editar`, …        | Portal → Grillas y botones              |
+| Columna         | `crm.clientes.col.limite_credito`         | Portal → Grillas y botones              |
+
+**Matriz de permisos** (portal) resume todo de un vistazo: roles en columnas; familias, pantallas, grillas, botones y columnas en filas. Pulsar el nombre de un rol abre su edición.
+
+En **Roles y permisos → Editar** se marca, familia por familia, qué pantallas tiene el rol y, dentro de cada pantalla, qué grillas, botones y columnas. Los cambios se aplican en la siguiente petición, sin cerrar la sesión del usuario. Retirar una pantalla retira también sus elementos.
+
+La carga inicial (`pnpm run db:seed`) registra los elementos de las nueve pantallas y los concede así: «Administrador» recibe todo; «Usuario normal» recibe la grilla y el botón Nuevo de su pantalla; cualquier otro rol existente recibe solo la grilla de las pantallas que ya tenía. Solo se asignan los elementos creados en esa ejecución: nunca se reemplazan permisos editados en el panel.
+
+Cada demo tiene identidad visual propia, como si la hubiera construido otro equipo: CRM es claro y redondeado con barra lateral, Almacén es oscuro, denso y monoespaciado, y Facturación usa navegación superior con estilo de documento. También el inicio de sesión es distinto en cada una (formulario a la izquierda con panel azul en CRM, tarjeta centrada sobre fondo oscuro en Almacén, columna editorial en Facturación), sobre el mismo flujo de contraseña y doble factor de IAM. Las tres muestran en la cabecera el usuario y su **rol activo**, del que depende lo que aparece en pantalla.
 
 ## Aplicaciones
 
@@ -68,9 +86,12 @@ pnpm run db:setup
 pnpm run db:seed
 pnpm run admin:create
 pnpm run demo:users
+pnpm run demo:data
 pnpm run build
 pnpm run dev
 ```
+
+`demo:data` llena las grillas con registros de ejemplo: lee `apps/app-*/database/seed-data.json` y escribe en la base de cada app con su propio usuario de ejecución. No repite registros ya cargados ni toca los creados desde las pantallas.
 
 Los comandos son repetibles: no borran bases, no reinician usuarios ni cambian contraseñas de roles existentes. Si una base ya tiene otro propietario o existe una incompatibilidad de configuración, se informa y se conserva. Después de instalar puedes vaciar la contraseña administrativa del `.env` raíz.
 
@@ -98,8 +119,9 @@ Para agregar una dependencia utiliza el paquete que la necesita, por ejemplo `pn
 
 1. El backend cliente valida sesión y permiso en la transversal mediante HTTP.
 2. Solo si se autoriza consulta su base y registra el acceso a la página en `integration_access`.
-3. El ID del usuario central se guarda como referencia externa, sin consultas SQL ni claves foráneas entre bases.
-4. Cada usuario de ejecución SQL tiene CONNECT solo a su propia base entre las cuatro del proyecto.
+3. Cada operación sobre los registros (`/api/v1/records`) solicita a IAM su capacidad exacta, por ejemplo `almacen.productos.eliminar`. Sin ella el backend responde 403 y no toca la tabla `records`. Las columnas protegidas no salen del backend ni se pueden escribir sin su capacidad.
+4. El ID del usuario central se guarda como referencia externa, sin consultas SQL ni claves foráneas entre bases.
+5. Cada usuario de ejecución SQL tiene CONNECT solo a su propia base entre las cuatro del proyecto.
 
 `GET /api/v1/integration/status` requiere una sesión de esa app y devuelve el nombre de su base, su usuario SQL y el número de accesos propios. El endpoint sirve para inspeccionar la integración; no agrega información técnica a la interfaz.
 
@@ -113,9 +135,9 @@ pnpm run test:integration
 pnpm run test:browser
 ```
 
-- `pnpm test`: 30 comprobaciones de contraseñas, MFA configurable, sesiones, permisos, aislamiento entre aplicaciones y límites de autenticación. Usa y elimina un esquema temporal, sin modificar las cuentas reales.
-- `test:integration`: comprueba las cuatro conexiones propias y el rechazo de las otras doce combinaciones; verifica por HTTP que IAM autoriza antes de escribir en cada base. Usa y limpia una cuenta temporal.
-- `test:browser`: recorre el panel y las tres apps, MFA, menús, sidebar móvil, cierre/revocación y permisos; limpia cuentas y registros locales de prueba. Capturas en `.local/screenshots`.
+- `pnpm test`: 31 comprobaciones de contraseñas, MFA configurable, sesiones, permisos de pantalla y de grillas/botones/columnas, aislamiento entre aplicaciones y límites de autenticación. Usa y elimina un esquema temporal, sin modificar las cuentas reales.
+- `test:integration`: comprueba las cuatro conexiones propias y el rechazo de las otras doce combinaciones; verifica por HTTP que IAM autoriza antes de escribir en cada base y que, en los tres backends, «Usuario normal» ve la grilla y crea, pero no edita, elimina ni exporta, ni recibe la columna protegida. Usa y limpia una cuenta temporal. Supone los permisos iniciales de «Usuario normal»; si se editaron en el panel, ajustarlos antes de ejecutarla.
+- `test:browser`: recorre el panel y las tres apps, MFA, menús, árbol de permisos del rol, matriz de permisos, usuario y rol en la cabecera, grilla/botones/columna según el rol, retiro de permisos con la pantalla abierta, sidebar móvil y cierre/revocación; limpia cuentas y registros locales de prueba. Capturas en `.local/screenshots`.
 
 ## Compartir en un repositorio
 
@@ -130,11 +152,15 @@ Este trabajo deja el proyecto preparado para versionarlo. No se ha publicado en 
 - [Arquitectura y separación de datos](docs/arquitectura.md)
 - [Contrato de integración IAM](docs/integracion.md)
 - [Trabajo por app y contexto para otros chats](docs/trabajo-por-app.md)
+- [Guías locales: DBeaver y autorización de interfaz](docs/local/README.md)
 - [Instalación y scripts SQL](database/README.md)
-- [Guion de exposición](docs/demostracion.md)
+- [Presentación: relato, puntos fuertes y preguntas frecuentes](docs/presentacion.md)
+- [Guion de exposición paso a paso](docs/demostracion.md)
 - [Contexto de Seguridad](apps/app-seguridad/README.md)
 - [Contexto de CRM](apps/app-crm/README.md)
 - [Contexto de Almacén](apps/app-almacen/README.md)
 - [Contexto de Facturación](apps/app-facturacion/README.md)
 
-La aplicación central conserva Argon2id, TOTP configurable por usuario, sesiones opacas con duración por rol, revocación, RBAC y auditoría. Los módulos nuevos deben validar también sus propias reglas de negocio. La ejecución preparada es local; un despliegue compartido requiere configurar HTTPS, orígenes/proxy y políticas operativas.
+Tras actualizar una instalación existente ejecuta `pnpm run db:migrate`, `pnpm run db:seed` y `pnpm run build` para crear las tablas de capacidades y registros, cargar el catálogo inicial y recompilar los frontends.
+
+La aplicación central conserva Argon2id, TOTP configurable por usuario, sesiones opacas con duración por rol, revocación, RBAC (pantallas, grillas, botones y columnas) y auditoría. Los módulos nuevos deben validar también sus propias reglas de negocio. La ejecución preparada es local; un despliegue compartido requiere configurar HTTPS, orígenes/proxy y políticas operativas.

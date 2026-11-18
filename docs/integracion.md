@@ -8,7 +8,7 @@
 | Backend cliente            | Cookie local, credencial privada de aplicación, protección CSRF y comprobación de permiso antes de servir páginas/datos |
 | Base de negocio, si existe | Clientes, productos, comprobantes y relaciones de negocio; accesible solo por su propio backend                         |
 
-Cada aplicación conecta a su propia base PostgreSQL: `seguridad_transversal`, `crm_app`, `almacen_app` y `facturacion_app`. Los runtimes SQL no pueden conectar a las otras tres bases. Las demos mantienen sus páginas vacías y registran únicamente accesos autorizados en su tabla local `integration_access`, como demostración de persistencia independiente.
+Cada aplicación conecta a su propia base PostgreSQL: `seguridad_transversal`, `crm_app`, `almacen_app` y `facturacion_app`. Los runtimes SQL no pueden conectar a las otras tres bases. Cada demo guarda los registros de sus pantallas en su tabla local `records` y anota los accesos autorizados en `integration_access`, como demostración de persistencia independiente.
 
 ## Contrato básico
 
@@ -19,8 +19,8 @@ El backend utiliza `X-App-Id` y `X-App-Key`, recibidos al registrar la aplicaci�
 3. `MFA_REQUIRED`: `POST /api/v1/auth/login-step2` con `{ challenge, code }`. Se acepta TOTP o recuperación.
 4. Si se devuelve `ROLE_REQUIRED`, usar la prueba `selection` en `POST /api/v1/auth/select-role` con `{ selection, role_id }`.
 5. `AUTHENTICATED` devuelve `sessionToken`, `expires_at` y `role_name` al backend. Este pone el token en una cookie `HttpOnly` y lo retira de la respuesta JSON del navegador.
-6. `GET /api/v1/me` devuelve identidad, rol, vencimiento, `session.mfa_required` (política), `session.mfa_verified` (segundo factor realizado en esa sesión) y árbol de menús. Los adaptadores agregan una prueba CSRF local sin exponer la sesión.
-7. Antes de servir una página o datos, llamar a `POST /api/v1/auth/introspect` con `{ permission: 'crm.clientes' }` y `Authorization: Bearer <sesión>`.
+6. `GET /api/v1/me` devuelve identidad, rol, vencimiento, `session.mfa_required` (política), `session.mfa_verified` (segundo factor realizado en esa sesión), el árbol de menús y `capabilities`: los códigos de grillas, botones y columnas que el rol tiene en sus pantallas. Los adaptadores agregan una prueba CSRF local sin exponer la sesión.
+7. Antes de servir una página o datos, llamar a `POST /api/v1/auth/introspect` con `{ permission: 'crm.clientes' }` y `Authorization: Bearer <sesión>`. El mismo endpoint acepta una capacidad, por ejemplo `{ permission: 'crm.clientes.editar' }`. Responde `403` (y lo audita) si el rol no la tiene; si autoriza, devuelve `session`, `permissions` (pantallas) y `capabilities` (elementos).
 8. `POST /api/v1/auth/logout` revoca la sesión central; el cliente elimina la cookie.
 
 Ejemplo exclusivamente del lado del servidor:
@@ -61,6 +61,43 @@ El identificador de usuario proviene de la respuesta validada del Core. Si la ap
 
 Cada backend tiene el catálogo de rutas y códigos. Los nombres, grupos, orden y asignaciones se administran en el portal. Para agregar otra pantalla real se agrega primero su ruta y comprobación al backend; después se registra su opción en el Core y se asigna a los roles.
 
+## Grillas, botones y columnas
+
+Cada pantalla declara en `backend/app.json` sus `actions` y `columns`. De ahí salen los códigos de capacidad, que deben existir en el Core (Portal → Grillas y botones, o `POST /api/v1/admin/capabilities`):
+
+| Capacidad                     | Tipo     | Qué concede                                       |
+| ----------------------------- | -------- | ------------------------------------------------- |
+| `<pantalla>.ver`              | `grid`   | Ver la grilla: `GET /api/v1/records?path=<ruta>`  |
+| `<pantalla>.crear`            | `button` | Botón Nuevo: `POST /api/v1/records?path=<ruta>`   |
+| `<pantalla>.editar`           | `button` | Botón Editar: `PATCH /api/v1/records/:id?path=…`  |
+| `<pantalla>.eliminar`         | `button` | Botón Eliminar: `DELETE /api/v1/records/:id?path=…` |
+| `<pantalla>.exportar`         | `button` | Botón Exportar: `GET /api/v1/records?path=…&export=1` |
+| `<pantalla>.col.<columna>`    | `column` | Leer y escribir una columna marcada `protected`   |
+
+Acciones por pantalla en las demos:
+
+| Pantalla                                             | Acciones                                 | Columna protegida |
+| ---------------------------------------------------- | ---------------------------------------- | ----------------- |
+| `crm.clientes`                                       | ver, crear, editar, eliminar, exportar   | `limite_credito`  |
+| `crm.oportunidades`                                  | ver, crear, editar, eliminar, exportar   | `margen`          |
+| `almacen.productos`                                  | ver, crear, editar, eliminar, exportar   | `costo`           |
+| `almacen.movimientos`                                | ver, crear, exportar                     | —                 |
+| `facturacion.comprobantes`                           | ver, crear, editar, eliminar, exportar   | `descuento`       |
+| `facturacion.series`                                 | ver, crear, editar                       | —                 |
+| `crm.reportes`, `almacen.reportes`, `facturacion.reportes` | ver, exportar                      | —                 |
+
+Reglas que aplican los tres backends:
+
+- La capacidad se pide a IAM en **cada** operación y antes de cualquier SQL. Una acción que la pantalla no declara responde `404`.
+- `POST`, `PATCH` y `DELETE` exigen además el encabezado `X-CSRF-Token` que el adaptador entrega en el login y en `/me`.
+- Una columna protegida sin su capacidad no se incluye en la respuesta (ni su cabecera) y se ignora al crear o editar; al editar se conserva su valor anterior.
+- El usuario que crea un registro se toma de la sesión validada (`iam_user_id`), nunca del cuerpo de la petición.
+- El frontend usa `capabilities` de `/me` para decidir qué mostrar. Es solo presentación: con un permiso retirado y la pantalla abierta, el backend responde `403` y la pantalla se actualiza.
+
+Una capacidad solo es efectiva si el rol tiene también su pantalla. El administrador las asigna en Roles y permisos, o con `PUT /api/v1/admin/roles/:id/capabilities` y `{ capability_ids: [...] }`. `POST/PATCH /api/v1/admin/roles` aceptan `capability_ids` de forma opcional; si se omite se conservan las de las pantallas que sigan asignadas.
+
+Para agregar un botón propio (por ejemplo «Aprobar»): implementar el endpoint en el backend de la app pidiendo `crm.oportunidades.aprobar` a IAM, registrar ese elemento en el portal, asignarlo a los roles y mostrar el botón solo si `capabilities` lo incluye.
+
 La rotación de una clave desde el panel la muestra una sola vez e invalida la anterior. Actualiza `APP_KEY` en el `.env` del backend cliente y reinícialo. Para mantener sincronizado el bootstrap local, actualiza también la variable `CRM_APP_KEY`, `ALMACEN_APP_KEY` o `FACTURACION_APP_KEY` de `apps/app-seguridad/backend/.env`. La carga inicial no sobrescribe la clave registrada en IAM ni los permisos editados.
 
 ## Persistencia independiente
@@ -68,7 +105,8 @@ La rotación de una clave desde el panel la muestra una sola vez e invalida la a
 - `apps/app-crm/backend/main.py`: valida IAM y usa Psycopg para insertar solo en `crm_app`.
 - `apps/app-almacen/backend/src/Database.java`: usa JDBC para consultar únicamente `almacen_app` después de autorizar en `Main.java`.
 - `apps/app-facturacion/backend/app.js`: valida IAM y consulta su pool `pg` conectado a `facturacion_app`.
-- `GET /api/v1/demo/page?path=...`: devuelve la pantalla autorizada, el nombre de la base observado por SQL y el identificador del acceso registrado. El frontend no muestra esos metadatos.
+- `GET /api/v1/demo/page?path=...`: devuelve la pantalla autorizada con su catálogo de acciones y columnas, el nombre de la base observado por SQL y el identificador del acceso registrado. El frontend no muestra esos metadatos.
+- `/api/v1/records`: lectura y escritura de la tabla local `records`, con una capacidad por operación.
 - `GET /api/v1/integration/status`: requiere sesión y devuelve la base/rol SQL reales y los accesos del usuario actual.
 
 Las tablas de negocio deben agregarse como migraciones en `apps/app-*/database/migrations`. `iam_user_id` es un identificador externo estable, sin claves foráneas ni acceso SQL a la base central.

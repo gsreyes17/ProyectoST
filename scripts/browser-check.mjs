@@ -38,8 +38,31 @@ async function openDemoPage(page, name) {
   await page.getByRole("link", { name, exact: true }).click();
   assert.equal((await authorization).status(), 200);
   await page.getByRole("heading", { name, exact: true }).waitFor();
-  await page.locator(".demo-empty-page").waitFor();
-  assert.equal((await page.locator(".demo-content").innerText()).trim(), "");
+  await page.locator(".demo-page table").waitFor();
+}
+// Casilla de una pantalla o de uno de sus elementos en el árbol de permisos del rol.
+function permission(modal, pageName, element) {
+  const block = modal
+    .locator(".permission-page")
+    .filter({ has: modal.page().getByText(pageName, { exact: true }) });
+  return element
+    ? block
+        .locator(".permission-element")
+        .filter({ hasText: element })
+        .getByRole("checkbox")
+    : block.locator(".permission-page-head").getByRole("checkbox");
+}
+async function editRole(adminPage, name, change) {
+  await adminPage
+    .getByRole("button", { name: "Roles y permisos", exact: true })
+    .click();
+  await adminPage
+    .getByRole("button", { name: `Editar ${name}`, exact: true })
+    .click();
+  const modal = adminPage.getByRole("dialog");
+  await change(modal);
+  await modal.getByRole("button", { name: "Guardar cambios" }).click();
+  await modal.waitFor({ state: "hidden" });
 }
 async function enroll(page) {
   await page.locator(".qr-enrollment").waitFor();
@@ -90,6 +113,24 @@ try {
     path: ".local/screenshots/login.png",
     fullPage: true,
   });
+  // Cada demo tiene su propio diseño de acceso sobre el mismo flujo de IAM.
+  for (const app of applications.slice(1)) {
+    await adminPage.goto(`http://localhost:${app.port}`);
+    await adminPage
+      .getByRole("heading", { name: "Bienvenido de nuevo" })
+      .waitFor();
+    await adminPage.getByLabel("Correo corporativo").waitFor();
+    await adminPage.screenshot({
+      path: `.local/screenshots/login-${app.slug}.png`,
+      fullPage: true,
+    });
+    const login = await adminPage.evaluate(() => ({
+      body: document.body.scrollWidth,
+      viewport: innerWidth,
+    }));
+    assert.ok(login.body <= login.viewport + 1);
+  }
+  console.log("OK: inicio de sesión propio en las tres demos.");
   await enterPassword(adminPage, 4000, adminEmail);
   await enroll(adminPage);
   await adminPage
@@ -112,13 +153,65 @@ try {
     .selectOption({ label: "CRM Comercial" });
   await modal.getByLabel("Nombre del rol").fill(roleName);
   await modal.getByRole("button", { name: "1 hora", exact: true }).click();
-  await modal.getByLabel("Clientes", { exact: false }).check();
+  // Los elementos de una pantalla no se pueden marcar sin autorizar la pantalla.
+  assert.equal(
+    await permission(modal, "Clientes", "Ver grilla").isDisabled(),
+    true,
+  );
+  await permission(modal, "Clientes").check();
+  await permission(modal, "Clientes", "Ver grilla").check();
+  await permission(modal, "Clientes", "Botón Nuevo").check();
+  await adminPage.screenshot({
+    path: ".local/screenshots/rol-permisos.png",
+    fullPage: true,
+  });
   await modal.getByRole("button", { name: "Guardar cambios" }).click();
   await modal.waitFor({ state: "hidden" });
   await adminPage
     .getByRole("button", { name: `Editar ${roleName}`, exact: true })
     .waitFor();
-  console.log("OK: crear rol y asignar menú desde el panel.");
+  console.log(
+    "OK: crear rol y asignar pantalla, grilla y botón desde el panel.",
+  );
+
+  await adminPage
+    .getByRole("button", { name: "Grillas y botones", exact: true })
+    .click();
+  await adminPage.getByText("crm.clientes.exportar", { exact: true }).waitFor();
+  await adminPage.screenshot({
+    path: ".local/screenshots/grillas-botones.png",
+    fullPage: true,
+  });
+  console.log("OK: catálogo de grillas, botones y columnas en el panel.");
+
+  // Matriz: el rol nuevo tiene Clientes, su grilla y Nuevo; no Exportar ni Reportes.
+  await adminPage
+    .getByRole("button", { name: "Matriz de permisos", exact: true })
+    .click();
+  const matrix = adminPage.locator("table.matrix");
+  await matrix
+    .getByRole("button", { name: `Editar permisos de ${roleName}` })
+    .waitFor();
+  const granted = (label) =>
+    matrix.getByRole("img", {
+      name: `${roleName}: permitido — ${label}`,
+      exact: true,
+    });
+  const missing = (label) =>
+    matrix.getByRole("img", {
+      name: `${roleName}: sin permiso — ${label}`,
+      exact: true,
+    });
+  assert.equal(await granted("Clientes").count(), 1);
+  assert.equal(await granted("Clientes: Ver grilla").count(), 1);
+  assert.equal(await granted("Clientes: Botón Nuevo").count(), 1);
+  assert.equal(await missing("Clientes: Botón Exportar").count(), 1);
+  assert.equal(await missing("Reportes comerciales").count(), 1);
+  await adminPage.screenshot({
+    path: ".local/screenshots/matriz.png",
+    fullPage: true,
+  });
+  console.log("OK: matriz de permisos por rol.");
 
   await adminPage.getByRole("button", { name: "Menús", exact: true }).click();
   await adminPage
@@ -190,16 +283,103 @@ try {
     .waitFor();
   await openDemoPage(userPage, "Clientes");
 
+  // El rol tiene la grilla y el botón Nuevo: no hay exportar, editar, eliminar
+  // ni la columna protegida.
+  const demo = userPage.locator(".demo-page");
+  const header = (name) =>
+    demo.getByRole("columnheader", { name, exact: true });
+  const action = (name) => demo.getByRole("button", { name, exact: true });
+  const rowAction = (prefix) =>
+    demo.getByRole("button", { name: new RegExp(`^${prefix} registro`) });
+  await action("Nuevo").waitFor();
+  assert.equal(await action("Exportar").count(), 0);
+  assert.equal(await rowAction("Editar").count(), 0);
+  assert.equal(await rowAction("Eliminar").count(), 0);
+  assert.equal(await header("Cliente").count(), 1);
+  assert.equal(await header("Límite de crédito").count(), 0);
+  await action("Nuevo").click();
+  let form = userPage.getByRole("dialog");
+  assert.equal(await form.getByLabel("Límite de crédito").count(), 0);
+  await form.getByLabel("Cliente", { exact: true }).fill(`QA ${tag}`);
+  await form.getByLabel("RUC", { exact: true }).fill("20000000001");
+  await form.getByLabel("Ciudad", { exact: true }).fill("Lima");
+  await form.getByRole("button", { name: "Guardar" }).click();
+  await form.waitFor({ state: "hidden" });
+  const qaRow = demo.getByRole("row").filter({ hasText: `QA ${tag}` });
+  await qaRow.waitFor();
   await userPage.screenshot({
     path: ".local/screenshots/crm.png",
     fullPage: true,
   });
+  console.log("OK: grilla y botón Nuevo según el rol; el resto no aparece.");
+
+  // El administrador concede más elementos: se aplican sin cerrar la sesión.
+  await editRole(adminPage, roleName, async (modal) => {
+    await permission(modal, "Clientes", "Botón Eliminar").check();
+    await permission(modal, "Clientes", "Botón Exportar").check();
+    await permission(modal, "Clientes", "Columna Límite de crédito").check();
+  });
+  await userPage.reload();
+  await demo.locator("table").waitFor();
+  await header("Límite de crédito").waitFor();
+  await action("Exportar").waitFor();
+  assert.equal(await rowAction("Editar").count(), 0);
+  await userPage.screenshot({
+    path: ".local/screenshots/crm-ampliado.png",
+    fullPage: true,
+  });
+  await qaRow.getByRole("button", { name: /^Eliminar registro/ }).click();
+  await userPage
+    .getByRole("dialog")
+    .getByRole("button", { name: "Eliminar", exact: true })
+    .click();
+  await qaRow.waitFor({ state: "detached" });
+  console.log(
+    "OK: botones Eliminar/Exportar y columna protegida concedidos desde el panel.",
+  );
+
+  // Un permiso retirado con la pantalla abierta: el botón sigue visible, pero
+  // el backend deniega y la pantalla se actualiza.
+  await editRole(adminPage, roleName, async (modal) => {
+    await permission(modal, "Clientes", "Botón Nuevo").uncheck();
+    await permission(modal, "Clientes", "Ver grilla").uncheck();
+  });
+  await action("Nuevo").click();
+  form = userPage.getByRole("dialog");
+  await form.getByLabel("Cliente", { exact: true }).fill(`QA ${tag}`);
+  await form.getByLabel("RUC", { exact: true }).fill("20000000001");
+  await form.getByLabel("Ciudad", { exact: true }).fill("Lima");
+  await form.getByLabel("Límite de crédito", { exact: true }).fill("100");
+  const refused = userPage.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/records") &&
+      response.request().method() === "POST",
+  );
+  await form.getByRole("button", { name: "Guardar" }).click();
+  assert.equal((await refused).status(), 403);
+  await demo.getByText("Tu rol no incluye esta grilla").waitFor();
+  assert.equal(await action("Nuevo").count(), 0);
+  assert.equal(await demo.locator("table").count(), 0);
+  await userPage.screenshot({
+    path: ".local/screenshots/crm-sin-grilla.png",
+    fullPage: true,
+  });
+  await editRole(adminPage, roleName, async (modal) => {
+    await permission(modal, "Clientes", "Ver grilla").check();
+    await permission(modal, "Clientes", "Botón Nuevo").check();
+  });
+  await userPage.reload();
+  await demo.locator("table").waitFor();
+  console.log(
+    "OK: retirar grilla y botón se aplica en el backend y en la pantalla.",
+  );
   const navigation = userPage.getByRole("navigation", {
     name: "Menú principal",
   });
   assert.equal(await navigation.getByRole("link").count(), 2);
   const text = await userPage.locator(".demo-shell").innerText();
-  assert.ok(!text.includes(userName) && !text.includes(roleName));
+  // La cabecera identifica al usuario y su rol activo; nada más de seguridad.
+  assert.ok(text.includes(userName) && text.includes(roleName));
   assert.ok(!text.includes("MFA") && !text.includes("DEMONSTRACIÓN"));
   const group = navigation.getByRole("button", {
     name: "Gestión",
@@ -429,6 +609,10 @@ try {
           "DELETE FROM integration_access WHERE iam_user_id=ANY($1::int[])",
           [ids],
         );
+        await local.query(
+          "DELETE FROM records WHERE iam_user_id=ANY($1::int[])",
+          [ids],
+        );
       } finally {
         await local.end();
       }
@@ -455,6 +639,10 @@ try {
       [ids],
     );
     await owner.query("DELETE FROM users WHERE id=ANY($1::int[])", [ids]);
+    await owner.query(
+      "DELETE FROM role_capabilities WHERE role_id IN (SELECT id FROM roles WHERE name=$1)",
+      [roleName],
+    );
     await owner.query(
       "DELETE FROM role_menus WHERE role_id IN (SELECT id FROM roles WHERE name=$1)",
       [roleName],
