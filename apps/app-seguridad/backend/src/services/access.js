@@ -63,22 +63,6 @@ export async function allowedMenus(session, db = pool) {
   return rows;
 }
 
-// Una capacidad solo es efectiva si el rol conserva también la pantalla que la contiene.
-export async function allowedCapabilities(session, db = pool) {
-  const { rows } = await db.query(
-    `SELECT c.code FROM capabilities c
-    JOIN role_capabilities rc ON rc.capability_id=c.id AND rc.app_id=c.app_id
-    JOIN menus m ON m.id=c.menu_id AND m.app_id=c.app_id
-    JOIN role_menus rm ON rm.menu_id=m.id AND rm.role_id=rc.role_id
-    LEFT JOIN menus p ON p.id=m.parent_id
-    WHERE rc.role_id=$1 AND c.app_id=$2 AND c.active AND m.active AND m.route IS NOT NULL
-    AND (m.parent_id IS NULL OR p.active)
-    ORDER BY c.code`,
-    [session.role_id, session.app_id],
-  );
-  return rows.map((row) => row.code);
-}
-
 export async function menuTree(session) {
   const leaves = await allowedMenus(session);
   const { rows: groups } = await pool.query(

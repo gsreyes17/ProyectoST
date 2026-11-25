@@ -74,18 +74,7 @@ ni scripts de provisión desde DBeaver sobre una instalación existente.
 
 ## 2. Estado actual del control de interfaz
 
-> **Implementado.** El modelo de las secciones 3 y 4 ya existe: tablas
-> `capabilities` y `role_capabilities` (migración `003-capabilities.sql`),
-> sección «Grillas y botones» y árbol de permisos del rol en el portal,
-> `capabilities` en `/me` e `introspect`, y endpoints `/api/v1/records`
-> protegidos en los tres backends. Los códigos usan sufijos en español
-> (`crm.clientes.ver`, `.crear`, `.editar`, `.eliminar`, `.exportar`,
-> `.col.<columna>`). El contrato vigente está en
-> [`docs/integracion.md`](../integracion.md). Lo que sigue se conserva como
-> justificación del diseño; las reglas de alcance por registro (propietario,
-> sucursal) siguen pendientes.
-
-Antes de este cambio IAM controlaba solo menús y páginas mediante códigos como
+Actualmente IAM controla menús y páginas mediante códigos como
 `crm.clientes` o `facturacion.comprobantes`. El backend de cada aplicación
 vuelve a validar el permiso antes de entregar la página y antes de consultar
 su base.

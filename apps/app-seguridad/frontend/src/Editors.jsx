@@ -2,175 +2,12 @@ import { useState } from "react";
 import { api } from "./api";
 import { Field, Button, Toggle, CheckList, ErrorBox, Icon } from "./ui";
 
-export const kindNames = {
-  grid: "Grilla",
-  button: "Botón",
-  column: "Columna",
-};
-
-// Familia de menú → pantalla → grillas, botones y columnas de esa pantalla.
-function PermissionTree({ menus, capabilities, value, onChange }) {
-  const pages = menus.filter((menu) => menu.route);
-  const families = [
-    ...menus
-      .filter((menu) => !menu.route && !menu.parent_id)
-      .map((group) => ({
-        ...group,
-        pages: pages.filter((page) => page.parent_id === group.id),
-      })),
-    {
-      id: 0,
-      name: "Sin familia",
-      pages: pages.filter((page) => !page.parent_id),
-    },
-  ].filter((family) => family.pages.length);
-  const elements = (page) =>
-    capabilities.filter((capability) => capability.menu_id === page.id);
-  function setPages(list, checked) {
-    const pageIds = list.map((page) => page.id);
-    const removed = new Set(
-      checked ? [] : list.flatMap((page) => elements(page).map((c) => c.id)),
-    );
-    onChange({
-      menu_ids: checked
-        ? [...new Set([...value.menu_ids, ...pageIds])]
-        : value.menu_ids.filter((id) => !pageIds.includes(id)),
-      capability_ids: value.capability_ids.filter((id) => !removed.has(id)),
-    });
-  }
-  function setElements(list, checked) {
-    const ids = list.map((capability) => capability.id);
-    onChange({
-      menu_ids: value.menu_ids,
-      capability_ids: checked
-        ? [...new Set([...value.capability_ids, ...ids])]
-        : value.capability_ids.filter((id) => !ids.includes(id)),
-    });
-  }
-  if (!families.length)
-    return (
-      <div className="check-list">
-        <p className="muted">Esta aplicación todavía no tiene pantallas.</p>
-      </div>
-    );
-  return (
-    <div className="permission-tree">
-      {families.map((family) => {
-        const selected = family.pages.filter((page) =>
-          value.menu_ids.includes(page.id),
-        ).length;
-        return (
-          <fieldset key={family.id} className="permission-family">
-            <legend>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={selected === family.pages.length}
-                  ref={(node) => {
-                    if (node)
-                      node.indeterminate =
-                        selected > 0 && selected < family.pages.length;
-                  }}
-                  onChange={(event) =>
-                    setPages(family.pages, event.target.checked)
-                  }
-                />
-                <strong>{family.name}</strong>
-                <small>
-                  {selected} de {family.pages.length} pantallas
-                </small>
-              </label>
-            </legend>
-            {family.pages.map((page) => {
-              const allowed = value.menu_ids.includes(page.id);
-              const list = elements(page);
-              const marked = list.filter((capability) =>
-                value.capability_ids.includes(capability.id),
-              ).length;
-              return (
-                <div
-                  key={page.id}
-                  className={`permission-page ${allowed ? "allowed" : ""}`}
-                >
-                  <div className="permission-page-head">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={allowed}
-                        onChange={(event) =>
-                          setPages([page], event.target.checked)
-                        }
-                      />
-                      <span>
-                        <strong>{page.name}</strong>
-                        <small>
-                          {page.route}
-                          {!page.active && " · menú desactivado"}
-                        </small>
-                      </span>
-                    </label>
-                    {allowed && list.length > 0 && (
-                      <button
-                        type="button"
-                        className="text-button"
-                        onClick={() =>
-                          setElements(list, marked !== list.length)
-                        }
-                      >
-                        {marked === list.length ? "Quitar todo" : "Marcar todo"}
-                      </button>
-                    )}
-                  </div>
-                  {list.length > 0 && (
-                    <div
-                      className="permission-elements"
-                      role="group"
-                      aria-label={`Elementos de ${page.name}`}
-                    >
-                      {list.map((capability) => (
-                        <label
-                          key={capability.id}
-                          className={`permission-element ${capability.kind}`}
-                          title={capability.code}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={!allowed}
-                            checked={value.capability_ids.includes(
-                              capability.id,
-                            )}
-                            onChange={(event) =>
-                              setElements([capability], event.target.checked)
-                            }
-                          />
-                          <span>
-                            {capability.name}
-                            <small>
-                              {kindNames[capability.kind]}
-                              {!capability.active && " · desactivado"}
-                            </small>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </fieldset>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function Editor({
   type,
   item,
   apps,
   roles,
   menus,
-  capabilities = [],
   onSaved,
   onClose,
   adminMfaRequired = true,
@@ -194,16 +31,6 @@ export default function Editor({
       duration_minutes: 60,
       active: true,
       menu_ids: [],
-      capability_ids: [],
-    },
-    capability: {
-      app_id: firstApp,
-      menu_id: "",
-      name: "",
-      code: "",
-      kind: "button",
-      position: 0,
-      active: true,
     },
     menu: {
       app_id: firstApp,
@@ -272,7 +99,6 @@ export default function Editor({
         const endpoint = {
           role: "roles",
           menu: "menus",
-          capability: "capabilities",
           application: "applications",
         }[type];
         const body =
@@ -298,8 +124,6 @@ export default function Editor({
         onChange={(event) => {
           field("app_id", Number(event.target.value));
           field("menu_ids", []);
-          field("capability_ids", []);
-          field("menu_id", "");
           field("parent_id", null);
         }}
       >
@@ -455,117 +279,24 @@ export default function Editor({
             {!item?.is_system_admin && (
               <>
                 <div className="form-section-title">
-                  Pantallas, grillas y botones autorizados
+                  Opciones de menú autorizadas
                 </div>
-                <PermissionTree
-                  menus={menus.filter(
-                    (menu) => menu.app_id === Number(data.app_id),
-                  )}
-                  capabilities={capabilities.filter(
-                    (capability) => capability.app_id === Number(data.app_id),
-                  )}
-                  value={data}
-                  onChange={(next) =>
-                    setData((previous) => ({ ...previous, ...next }))
-                  }
+                <CheckList
+                  items={menus
+                    .filter(
+                      (menu) =>
+                        menu.app_id === Number(data.app_id) && menu.route,
+                    )
+                    .map((menu) => ({ ...menu, subtitle: menu.route }))}
+                  selected={data.menu_ids}
+                  onChange={(value) => field("menu_ids", value)}
                 />
-                <p className="muted">
-                  La pantalla concede la entrada desde el menú. Cada grilla,
-                  botón o columna se concede por separado y solo dentro de una
-                  pantalla autorizada.
-                </p>
               </>
             )}
             {editing && (
               <div className="info-box">
                 Modificar la duración cierra las sesiones de este rol. Los
                 permisos se aplican en la siguiente petición.
-              </div>
-            )}
-          </>
-        )}
-        {type === "capability" && (
-          <>
-            {appSelect}
-            <Field label="Pantalla">
-              <select
-                value={data.menu_id}
-                disabled={editing}
-                required
-                onChange={(event) => {
-                  const menu = menus.find(
-                    (menu) => menu.id === Number(event.target.value),
-                  );
-                  field("menu_id", menu.id);
-                  if (!data.code) field("code", `${menu.code}.`);
-                }}
-              >
-                <option value="" disabled>
-                  Selecciona una pantalla
-                </option>
-                {menus
-                  .filter(
-                    (menu) => menu.app_id === Number(data.app_id) && menu.route,
-                  )
-                  .map((menu) => (
-                    <option value={menu.id} key={menu.id}>
-                      {menu.name} ({menu.route})
-                    </option>
-                  ))}
-              </select>
-            </Field>
-            <div className="form-grid">
-              <Field label="Tipo de elemento">
-                <select
-                  value={data.kind}
-                  onChange={(event) => field("kind", event.target.value)}
-                >
-                  {Object.entries(kindNames).map(([kind, name]) => (
-                    <option key={kind} value={kind}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field
-                label="Orden"
-                type="number"
-                min={0}
-                max={1000}
-                value={data.position}
-                onChange={(event) =>
-                  field("position", Number(event.target.value))
-                }
-              />
-            </div>
-            <Field
-              label="Nombre visible"
-              required
-              value={data.name}
-              maxLength={100}
-              placeholder="Botón Aprobar"
-              onChange={(event) => field("name", event.target.value)}
-            />
-            <Field
-              label="Código de autorización"
-              required
-              disabled={editing}
-              value={data.code}
-              pattern="[a-z][a-z0-9_.\-]{1,119}"
-              placeholder="crm.clientes.aprobar"
-              onChange={(event) => field("code", event.target.value)}
-              hint="Empieza con el código de la pantalla. El backend de la aplicación debe comprobar este mismo código antes de ejecutar la operación."
-            />
-            <Toggle
-              label="Elemento habilitado"
-              checked={data.active}
-              onChange={(value) => field("active", value)}
-            />
-            {!editing && (
-              <div className="info-box">
-                Registrar un elemento no crea el botón ni la grilla en la
-                aplicación: declara el permiso que su pantalla y su backend
-                consultan. Después asígnalo desde Roles y permisos.
               </div>
             )}
           </>

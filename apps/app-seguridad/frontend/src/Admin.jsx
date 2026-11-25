@@ -13,8 +13,17 @@ import {
   dateTime,
   duration,
 } from "./ui";
-import Editor, { kindNames } from "./Editors";
+import Editor from "./Editors";
 import Matrix from "./Matrix";
+import {
+  ChangeTable,
+  AccessTable,
+  EntityHistory,
+  entityNames,
+} from "./History";
+
+// Secciones con paginación y filtros resueltos en el servidor.
+const paged = ["users", "audit", "changes", "access"];
 
 const sections = [
   ["overview", "Resumen", "Tu seguridad, de un vistazo"],
@@ -25,19 +34,20 @@ const sections = [
     "Un punto de acceso para todo tu ecosistema",
   ],
   ["roles", "Roles y permisos", "El acceso correcto para cada persona"],
-  [
-    "matrix",
-    "Matriz de permisos",
-    "Qué ve y qué puede hacer cada rol, de un vistazo",
-  ],
+  ["matrix", "Matriz de permisos", "Qué pantallas ve cada rol, de un vistazo"],
   ["menus", "Menús", "La navegación que cada rol necesita"],
-  [
-    "capabilities",
-    "Grillas y botones",
-    "Lo que cada rol puede ver y hacer dentro de cada pantalla",
-  ],
   ["sessions", "Sesiones", "Control sobre los accesos vigentes"],
   ["audit", "Auditoría", "Cada acceso deja una historia"],
+  [
+    "changes",
+    "Historial de cambios",
+    "Qué cambió en la configuración, quién y cuándo",
+  ],
+  [
+    "access",
+    "Accesos a pantallas",
+    "Cada pantalla abierta o bloqueada en las aplicaciones",
+  ],
 ];
 const sectionIcon = {
   overview: "overview",
@@ -46,15 +56,15 @@ const sectionIcon = {
   roles: "roles",
   matrix: "table",
   menus: "menus",
-  capabilities: "layout",
   sessions: "sessions",
   audit: "audit",
+  changes: "history",
+  access: "eye",
 };
 const editorTitles = {
   user: "usuario",
   role: "rol",
   menu: "menú",
-  capability: "elemento",
   application: "aplicación",
 };
 const eventNames = {
@@ -70,9 +80,6 @@ const eventNames = {
   MENUS_ASIGNADOS: "Menús asignados",
   MENU_CREADO: "Menú creado",
   MENU_EDITADO: "Menú actualizado",
-  CAPACIDAD_CREADA: "Elemento de pantalla creado",
-  CAPACIDAD_EDITADA: "Elemento de pantalla actualizado",
-  CAPACIDADES_ASIGNADAS: "Grillas y botones asignados",
   ROLES_ASIGNADOS: "Roles asignados",
   APLICACIONES_ASIGNADAS: "Aplicaciones asignadas",
   SESION_REVOCADA: "Sesión revocada",
@@ -92,7 +99,6 @@ export default function Admin({ session, config, onLogout }) {
     apps: [],
     roles: [],
     menus: [],
-    capabilities: [],
   });
   const [payload, setPayload] = useState(null);
   const data = payload?.section === section ? payload.value : null;
@@ -102,6 +108,8 @@ export default function Admin({ session, config, onLogout }) {
   const [version, setVersion] = useState(0);
   const [search, setSearch] = useState("");
   const [resultFilter, setResultFilter] = useState("");
+  const [entityFilter, setEntityFilter] = useState("");
+  const [history, setHistory] = useState(null);
   const [appFilter, setAppFilter] = useState("");
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState("");
@@ -132,12 +140,11 @@ export default function Admin({ session, config, onLogout }) {
       api("/admin/applications"),
       api("/admin/roles"),
       api("/admin/menus"),
-      api("/admin/capabilities"),
       api("/admin/overview"),
     ])
-      .then(([apps, roles, menus, capabilities, summary]) => {
+      .then(([apps, roles, menus, summary]) => {
         if (alive) {
-          setReference({ apps, roles, menus, capabilities });
+          setReference({ apps, roles, menus });
           setOverview(summary);
         }
       })
@@ -166,9 +173,10 @@ export default function Admin({ session, config, onLogout }) {
             result: resultFilter,
             from,
             until,
+            entity: entityFilter,
           });
           const next = await api(
-            `/admin/${section}${["users", "audit"].includes(section) ? `?${query}` : ""}`,
+            `/admin/${section}${paged.includes(section) ? `?${query}` : ""}`,
           );
           if (alive) setPayload({ section, value: next });
         } catch (error) {
@@ -183,7 +191,7 @@ export default function Admin({ session, config, onLogout }) {
       alive = false;
       clearTimeout(timeout);
     };
-  }, [section, version, search, page, resultFilter, from, until]);
+  }, [section, version, search, page, resultFilter, from, until, entityFilter]);
   useEffect(() => {
     function changed() {
       const key = location.hash.slice(1);
@@ -198,6 +206,8 @@ export default function Admin({ session, config, onLogout }) {
     setSearch("");
     setPage(1);
     setAppFilter("");
+    setEntityFilter("");
+    setResultFilter("");
     setError("");
     setMobileOpen(false);
   }
@@ -208,7 +218,9 @@ export default function Admin({ session, config, onLogout }) {
   async function confirmAction() {
     setActionBusy(true);
     try {
-      const result = await api(confirm.path, { method: "POST", body: {} });
+      const result = confirm.run
+        ? await confirm.run()
+        : await api(confirm.path, { method: "POST", body: {} });
       if (result.key) setSecret(result.key);
       setConfirm(null);
       refresh("Cambios aplicados correctamente.");
@@ -218,6 +230,37 @@ export default function Admin({ session, config, onLogout }) {
     } finally {
       setActionBusy(false);
     }
+  }
+  // Cambia la exigencia de doble factor sin abrir el editor. Usa el mismo
+  // endpoint que «Editar», así que cierra las sesiones del usuario y queda en
+  // la auditoría y en el historial de cambios.
+  function mfaChange(users, required = !users[0].mfa_required) {
+    const targets = users.filter((user) => user.mfa_required !== required);
+    const who =
+      targets.length === 1
+        ? targets[0].full_name
+        : `${targets.length} usuarios`;
+    return {
+      title: required
+        ? `Exigir doble factor a ${who}`
+        : `Dejar de exigir doble factor a ${who}`,
+      text: required
+        ? "Se cerrarán sus sesiones abiertas. En su próximo ingreso se pedirá el código del autenticador; si aún no lo configuraron, escanearán el QR."
+        : "Se cerrarán sus sesiones abiertas y podrán ingresar solo con contraseña. Su autenticador se conserva por si vuelves a exigirlo.",
+      run: async () => {
+        for (const user of targets)
+          await api(`/admin/users/${user.id}`, {
+            method: "PATCH",
+            body: {
+              email: user.email,
+              full_name: user.full_name,
+              active: user.active,
+              mfa_required: required,
+            },
+          });
+        return {};
+      },
+    };
   }
   const current = sections.find(([key]) => key === section);
   const items = Array.isArray(data)
@@ -231,13 +274,13 @@ export default function Admin({ session, config, onLogout }) {
               item.email,
               item.full_name,
               item.app_name,
-              item.code,
-              item.menu_name,
             ])
               .toLowerCase()
               .includes(search.toLowerCase())),
       )
     : data?.items || [];
+  const withoutMfa =
+    section === "users" ? items.filter((user) => !user.mfa_required) : [];
   const remaining = Math.max(
     0,
     Math.ceil((new Date(session.expires_at).getTime() - now) / 60000),
@@ -247,7 +290,6 @@ export default function Admin({ session, config, onLogout }) {
     applications: "application",
     roles: "role",
     menus: "menu",
-    capabilities: "capability",
   }[section];
   const applicationName = (id) =>
     reference.apps.find((app) => app.id === id)?.name || "—";
@@ -259,6 +301,18 @@ export default function Admin({ session, config, onLogout }) {
       onClick={() => setEditor({ type, item })}
     >
       <Icon name="edit" size={17} />
+    </button>
+  );
+  const historyButton = (entity, item) => (
+    <button
+      className="icon-button"
+      title="Ver historial"
+      aria-label={`Ver historial de ${item.full_name || item.name}`}
+      onClick={() =>
+        setHistory({ entity, id: item.id, name: item.full_name || item.name })
+      }
+    >
+      <Icon name="history" size={17} />
     </button>
   );
   const activeBadge = (active) => (
@@ -348,16 +402,6 @@ export default function Admin({ session, config, onLogout }) {
             Seguridad<small>TRANSVERSAL</small>
           </span>
         </a>
-        <div className="workspace">
-          <span className="workspace-monogram">
-            {config.companyName.slice(0, 1).toUpperCase()}
-          </span>
-          <span>
-            <strong>{config.companyName}</strong>
-            <small>Espacio de administración</small>
-          </span>
-          <Icon name="down" size={14} />
-        </div>
         <span className="nav-caption">PRINCIPAL</span>
         <nav className="main-nav">
           {sections.map(([key, label]) => (
@@ -452,6 +496,15 @@ export default function Admin({ session, config, onLogout }) {
               >
                 Actualizar
               </Button>
+              {withoutMfa.length > 0 && (
+                <Button
+                  variant="secondary"
+                  icon="fingerprint"
+                  onClick={() => setConfirm(mfaChange(withoutMfa, true))}
+                >
+                  Exigir doble factor a todos ({withoutMfa.length})
+                </Button>
+              )}
               {newType && (
                 <Button
                   icon="plus"
@@ -461,11 +514,9 @@ export default function Admin({ session, config, onLogout }) {
                     ? "Nueva aplicación"
                     : section === "menus"
                       ? "Nuevo menú"
-                      : section === "capabilities"
-                        ? "Nuevo elemento"
-                        : section === "roles"
-                          ? "Nuevo rol"
-                          : "Nuevo usuario"}
+                      : section === "roles"
+                        ? "Nuevo rol"
+                        : "Nuevo usuario"}
                 </Button>
               )}
             </div>
@@ -611,7 +662,9 @@ export default function Admin({ session, config, onLogout }) {
                     />
                   </div>
                   <small>
-                    {data.denied} accesos denegados en las últimas 24 horas
+                    {data.denied} accesos denegados en las últimas 24 horas ·{" "}
+                    {data.screens_today} pantallas solicitadas hoy ·{" "}
+                    {data.changes_week} cambios de configuración esta semana
                   </small>
                 </section>
               </div>
@@ -741,7 +794,7 @@ export default function Admin({ session, config, onLogout }) {
                       />
                     </div>
                     <div className="table-filters">
-                      {["roles", "menus", "capabilities"].includes(section) && (
+                      {["roles", "menus"].includes(section) && (
                         <select
                           aria-label="Filtrar por aplicación"
                           value={appFilter}
@@ -755,7 +808,24 @@ export default function Admin({ session, config, onLogout }) {
                           ))}
                         </select>
                       )}
-                      {section === "audit" && (
+                      {section === "changes" && (
+                        <select
+                          aria-label="Filtrar por tipo de registro"
+                          value={entityFilter}
+                          onChange={(event) => {
+                            setEntityFilter(event.target.value);
+                            setPage(1);
+                          }}
+                        >
+                          <option value="">Todos los registros</option>
+                          {Object.entries(entityNames).map(([key, name]) => (
+                            <option key={key} value={key}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {["audit", "changes", "access"].includes(section) && (
                         <>
                           <input
                             aria-label="Desde fecha"
@@ -775,24 +845,30 @@ export default function Admin({ session, config, onLogout }) {
                               setPage(1);
                             }}
                           />
-                          <select
-                            aria-label="Filtrar por resultado"
-                            value={resultFilter}
-                            onChange={(event) => {
-                              setResultFilter(event.target.value);
-                              setPage(1);
-                            }}
-                          >
-                            <option value="">Todos los resultados</option>
-                            <option value="OK">Correctos</option>
-                            <option value="DENEGADO">Denegados</option>
-                          </select>
+                          {section !== "changes" && (
+                            <select
+                              aria-label="Filtrar por resultado"
+                              value={resultFilter}
+                              onChange={(event) => {
+                                setResultFilter(event.target.value);
+                                setPage(1);
+                              }}
+                            >
+                              <option value="">Todos los resultados</option>
+                              <option value="OK">Correctos</option>
+                              <option value="DENEGADO">Denegados</option>
+                            </select>
+                          )}
                         </>
                       )}
                     </div>
                   </div>
                   {section === "audit" ? (
                     eventTable(items)
+                  ) : section === "changes" ? (
+                    <ChangeTable items={items} timeZone={config.timeZone} />
+                  ) : section === "access" ? (
+                    <AccessTable items={items} timeZone={config.timeZone} />
                   ) : !items.length ? (
                     <Empty
                       icon={sectionIcon[section]}
@@ -818,7 +894,7 @@ export default function Admin({ session, config, onLogout }) {
                                   "Rol",
                                   "Aplicación",
                                   "Sesión máxima",
-                                  "Permisos",
+                                  "Opciones",
                                   "Usuarios",
                                   "Estado",
                                   "",
@@ -828,15 +904,6 @@ export default function Admin({ session, config, onLogout }) {
                                   "Aplicación",
                                   "Código / Ruta",
                                   "Orden",
-                                  "Estado",
-                                  "",
-                                ],
-                                capabilities: [
-                                  "Elemento",
-                                  "Aplicación",
-                                  "Pantalla",
-                                  "Código",
-                                  "Roles",
                                   "Estado",
                                   "",
                                 ],
@@ -886,26 +953,46 @@ export default function Admin({ session, config, onLogout }) {
                                   </span>
                                 </td>
                                 <td>
-                                  <Badge
-                                    tone={
-                                      !user.mfa_required
-                                        ? "gray"
+                                  <div className="mfa-cell">
+                                    <button
+                                      type="button"
+                                      role="switch"
+                                      className="mfa-switch"
+                                      aria-checked={user.mfa_required}
+                                      aria-label={`Exigir doble factor a ${user.full_name}`}
+                                      title={
+                                        user.mfa_required
+                                          ? "Dejar de exigir doble factor"
+                                          : "Exigir doble factor"
+                                      }
+                                      onClick={() =>
+                                        setConfirm(mfaChange([user]))
+                                      }
+                                    >
+                                      <span />
+                                    </button>
+                                    <Badge
+                                      tone={
+                                        !user.mfa_required
+                                          ? "gray"
+                                          : user.mfa_enabled
+                                            ? "indigo"
+                                            : "amber"
+                                      }
+                                    >
+                                      {!user.mfa_required
+                                        ? "No exigido"
                                         : user.mfa_enabled
-                                          ? "indigo"
-                                          : "amber"
-                                    }
-                                  >
-                                    {!user.mfa_required
-                                      ? "No exigido"
-                                      : user.mfa_enabled
-                                        ? "Exigido"
-                                        : "Por configurar"}
-                                  </Badge>
+                                          ? "Configurado"
+                                          : "Por configurar"}
+                                    </Badge>
+                                  </div>
                                 </td>
                                 <td>{activeBadge(user.active)}</td>
                                 <td>
                                   <div className="row-actions">
                                     {editButton("user", user)}
+                                    {historyButton("user", user)}
                                     <button
                                       className="icon-button"
                                       aria-label={`Restablecer contraseña de ${user.full_name}`}
@@ -969,11 +1056,16 @@ export default function Admin({ session, config, onLogout }) {
                                 <td>
                                   {role.is_system_admin
                                     ? "Administración interna"
-                                    : `${role.menu_ids.length} pantallas · ${role.capability_ids.length} elementos`}
+                                    : `${role.menu_ids.length} opciones`}
                                 </td>
                                 <td>{role.users_count}</td>
                                 <td>{activeBadge(role.active)}</td>
-                                <td>{editButton("role", role)}</td>
+                                <td>
+                                  <div className="row-actions">
+                                    {editButton("role", role)}
+                                    {historyButton("role", role)}
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                           {section === "menus" &&
@@ -1007,50 +1099,12 @@ export default function Admin({ session, config, onLogout }) {
                                 </td>
                                 <td>{menu.position}</td>
                                 <td>{activeBadge(menu.active)}</td>
-                                <td>{editButton("menu", menu)}</td>
-                              </tr>
-                            ))}
-                          {section === "capabilities" &&
-                            items.map((capability) => (
-                              <tr key={capability.id}>
                                 <td>
-                                  <div className="name-cell">
-                                    <span className="small-symbol">
-                                      <Icon
-                                        name={
-                                          {
-                                            grid: "layout",
-                                            button: "check",
-                                            column: "eye",
-                                          }[capability.kind]
-                                        }
-                                        size={18}
-                                      />
-                                    </span>
-                                    <span>
-                                      <strong>{capability.name}</strong>
-                                      <small>
-                                        {kindNames[capability.kind]}
-                                      </small>
-                                    </span>
+                                  <div className="row-actions">
+                                    {editButton("menu", menu)}
+                                    {historyButton("menu", menu)}
                                   </div>
                                 </td>
-                                <td>{capability.app_name}</td>
-                                <td>{capability.menu_name}</td>
-                                <td>
-                                  <code>{capability.code}</code>
-                                </td>
-                                <td>
-                                  {
-                                    reference.roles.filter((role) =>
-                                      role.capability_ids.includes(
-                                        capability.id,
-                                      ),
-                                    ).length
-                                  }
-                                </td>
-                                <td>{activeBadge(capability.active)}</td>
-                                <td>{editButton("capability", capability)}</td>
                               </tr>
                             ))}
                           {section === "sessions" &&
@@ -1105,7 +1159,7 @@ export default function Admin({ session, config, onLogout }) {
                       </table>
                     </div>
                   )}
-                  {["users", "audit"].includes(section) ? (
+                  {paged.includes(section) ? (
                     <Pagination
                       total={data?.total || 0}
                       page={page}
@@ -1114,7 +1168,6 @@ export default function Admin({ session, config, onLogout }) {
                   ) : (
                     <div className="table-footer">
                       <span>{items.length} registros</span>
-                      <span>Configuración centralizada</span>
                     </div>
                   )}
                 </section>
@@ -1125,17 +1178,6 @@ export default function Admin({ session, config, onLogout }) {
                   <span>
                     Los menús administran el acceso a páginas existentes. Crear
                     una opción no genera una pantalla nueva en el cliente.
-                  </span>
-                </div>
-              )}
-              {section === "capabilities" && (
-                <div className="help-note">
-                  <Icon name="alert" size={18} />
-                  <span>
-                    Cada elemento es un permiso que la aplicación consulta antes
-                    de mostrar una grilla, un botón o una columna, y que su
-                    backend vuelve a comprobar al ejecutar la operación. Se
-                    asignan a cada rol desde Roles y permisos.
                   </span>
                 </div>
               )}
@@ -1150,15 +1192,6 @@ export default function Admin({ session, config, onLogout }) {
               )}
             </>
           )}
-          <footer className="main-footer">
-            <span>
-              {config.companyName} · {config.appName}
-            </span>
-            <span>
-              <Icon name="shield" size={13} />
-              Identidad y acceso, en un solo lugar
-            </span>
-          </footer>
         </main>
       </div>
       {editor && (
@@ -1172,11 +1205,11 @@ export default function Admin({ session, config, onLogout }) {
           }
           description={
             editor.type === "role"
-              ? "Define las pantallas, grillas, botones y el tiempo de sesión de este rol."
+              ? "Define los accesos y el tiempo de sesión de este rol."
               : undefined
           }
           onClose={() => setEditor(null)}
-          wide={["user", "role"].includes(editor.type)}
+          wide={editor.type === "user"}
         >
           <Editor
             key={`${editor.type}-${editor.item?.id || "new"}`}
@@ -1189,6 +1222,20 @@ export default function Admin({ session, config, onLogout }) {
               refresh("Cambios guardados correctamente.");
               if (result?.key) setSecret(result.key);
             }}
+          />
+        </Modal>
+      )}
+      {history && (
+        <Modal
+          title={`Historial de ${history.name}`}
+          description={`${entityNames[history.entity]} · cada cambio con su estado anterior y el nuevo`}
+          onClose={() => setHistory(null)}
+          wide
+        >
+          <EntityHistory
+            entity={history.entity}
+            id={history.id}
+            timeZone={config.timeZone}
           />
         </Modal>
       )}

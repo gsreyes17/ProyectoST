@@ -2,14 +2,14 @@
 
 Guía para exponer el proyecto en 12–15 minutos. Cada sección es una lámina: **qué decir** y **qué mostrar**. El paso a paso detallado de la demo está en [demostracion.md](demostracion.md); aquí está el relato.
 
-| Bloque                                    | Tiempo | Peso        |
-| ----------------------------------------- | ------ | ----------- |
-| 1. El problema y la idea                  | 1 min  |             |
-| 2. Arquitectura en una lámina             | 2 min  |             |
-| 3. Autenticación y doble factor           | 4 min  | **Central** |
-| 4. Roles que muestran o bloquean vistas   | 5 min  | **Central** |
-| 5. Sesiones y auditoría                   | 1 min  |             |
-| 6. Cierre                                 | 1 min  |             |
+| Bloque                                  | Tiempo | Peso        |
+| --------------------------------------- | ------ | ----------- |
+| 1. El problema y la idea                | 1 min  |             |
+| 2. Arquitectura en una lámina           | 2 min  |             |
+| 3. Autenticación y doble factor         | 4 min  | **Central** |
+| 4. Roles que muestran o bloquean vistas | 5 min  | **Central** |
+| 5. Sesiones y trazabilidad              | 2 min  |             |
+| 6. Cierre                               | 1 min  |             |
 
 ## Antes de empezar
 
@@ -18,7 +18,7 @@ pnpm run dev
 ```
 
 - Portal en http://localhost:4000 con la sesión de administrador ya iniciada (credenciales en `.local/admin-inicial.txt`).
-- Dos ventanas de CRM (http://localhost:5001), una normal y una de incógnito: en una entra «operador» y en la otra «supervisor» (`.local/usuarios-demo.txt`). Así se comparan dos roles lado a lado.
+- Dos ventanas de CRM (http://localhost:5001), una normal y una de incógnito: en una entra «operador» y en la otra «supervisor» (`.local/usuarios-demo.txt`). Así se comparan dos roles lado a lado. Para un tercer rol, `rosa.diaz@zentra.com` entra como Analista (solo Reportes) y `sofia.quispe@zentra.com` muestra la elección de rol al ingresar.
 - El autenticador del teléfono a la mano. Si las cuentas demo no existen: `pnpm run demo:users`. Para llenar las grillas: `pnpm run demo:data`.
 - Usar siempre `localhost`, no `127.0.0.1`, para no mezclar cookies.
 
@@ -32,7 +32,7 @@ pnpm run dev
 >
 > Nuestra propuesta: **una sola aplicación de seguridad** decide quién entra y qué puede ver. Las demás no guardan contraseñas ni roles; preguntan.
 
-**Qué mostrar:** las tres apps abiertas en pestañas. Se ven distintas a propósito (CRM claro, Almacén oscuro, Facturación tipo documento) y hasta su pantalla de acceso es diferente. Lo único que comparten es quién decide el acceso.
+**Qué mostrar:** las tres apps abiertas en pestañas. Se ven distintas a propósito (CRM claro, Almacén oscuro, Facturación tipo documento) y hasta su pantalla de acceso cambia de disposición. Lo único que comparten es quién decide el acceso.
 
 ## 2. Arquitectura en una lámina
 
@@ -70,14 +70,14 @@ Navegador ──cookie──> Backend de la app ──HTTP + credencial──> S
 
 ### Qué mostrar
 
-| Paso | Acción                                                                                      | Qué se demuestra                                   |
-| ---- | ------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| 1    | Entrar a CRM con correo y contraseña                                                        | La contraseña no basta: pide el código             |
-| 2    | Escribir un código incorrecto                                                               | Se rechaza y cuenta como intento                   |
-| 3    | Escribir el código del autenticador                                                         | Recién ahora hay sesión                            |
-| 4    | Cerrar sesión, entrar a Almacén e intentar **el mismo código**                              | Un código usado no vuelve a servir                 |
-| 5    | Portal → Usuarios → Editar → desactivar «Exigir doble factor»                               | La sesión abierta del usuario se cierra sola       |
-| 6    | Volver a entrar: ya no pide código. Reactivar la opción                                     | La política es central y se aplica a las tres apps |
+| Paso | Acción                                                         | Qué se demuestra                                   |
+| ---- | -------------------------------------------------------------- | -------------------------------------------------- |
+| 1    | Entrar a CRM con correo y contraseña                           | La contraseña no basta: pide el código             |
+| 2    | Escribir un código incorrecto                                  | Se rechaza y cuenta como intento                   |
+| 3    | Escribir el código del autenticador                            | Recién ahora hay sesión                            |
+| 4    | Cerrar sesión, entrar a Almacén e intentar **el mismo código** | Un código usado no vuelve a servir                 |
+| 5    | Portal → Usuarios → Editar → desactivar «Exigir doble factor»  | La sesión abierta del usuario se cierra sola       |
+| 6    | Volver a entrar: ya no pide código. Reactivar la opción        | La política es central y se aplica a las tres apps |
 
 **Frase de cierre del bloque**
 
@@ -87,46 +87,42 @@ Navegador ──cookie──> Backend de la app ──HTTP + credencial──> S
 
 ## 4. Roles que muestran o bloquean vistas (bloque central)
 
-**Idea a transmitir:** el rol decide qué ve el usuario, a cuatro niveles, y el bloqueo es real: ocurre en el servidor.
+**Idea a transmitir:** el rol decide qué pantallas ve el usuario en cada aplicación, y el bloqueo es real: ocurre en el servidor.
 
 ### Qué decir
 
-Un usuario entra a cada aplicación con **un rol activo**. Ese rol define:
+Un usuario entra a cada aplicación con **un rol activo**, que la cabecera de la app muestra. Ese rol define su menú:
 
-| Nivel               | Ejemplo en CRM                        | Si el rol no lo tiene                          |
-| ------------------- | ------------------------------------- | ---------------------------------------------- |
-| **Familia de menú** | Grupo «Gestión»                       | El grupo no aparece                            |
-| **Pantalla**        | Clientes, Oportunidades, Reportes     | No está en el menú y la URL directa da 403     |
-| **Grilla**          | Listado de clientes                   | La pantalla abre, pero sin los datos           |
-| **Botón**           | Nuevo, Editar, Eliminar, Exportar     | El botón no se dibuja y la operación da 403    |
-| **Columna**         | «Límite de crédito»                   | El dato **no sale del servidor**               |
+| Nivel               | Ejemplo en CRM                    | Si el rol no lo tiene                                            |
+| ------------------- | --------------------------------- | ---------------------------------------------------------------- |
+| **Familia de menú** | Grupo «Gestión»                   | El grupo no aparece                                              |
+| **Pantalla**        | Clientes, Oportunidades, Reportes | No está en el menú, la URL directa da 403 y sus datos no se leen |
 
-Dos puntos que conviene decir en voz alta:
+Tres puntos que conviene decir en voz alta:
 
-- **Ocultar un botón no es seguridad.** El navegador lo controla el usuario. Por eso cada backend pregunta a la aplicación de seguridad antes de cada operación, y si el permiso falta responde 403 sin tocar su base de datos.
+- **Las apps no deciden su menú.** Lo piden a la aplicación de seguridad al cargar y lo dibujan tal cual llega.
+- **Ocultar una opción no es seguridad.** El navegador lo controla el usuario. Por eso, al abrir una pantalla, el backend vuelve a preguntar a la aplicación de seguridad; si el permiso falta responde 403 y no consulta su base de datos.
 - **Los cambios son inmediatos.** No hay que cerrar sesión: el permiso se consulta en cada petición.
 
 ### Qué mostrar
 
-**a) Dos roles, la misma pantalla.** Las dos ventanas de CRM en Clientes, lado a lado. La cabecera indica el rol de cada una.
+**a) Dos roles, la misma aplicación.** Las dos ventanas de CRM lado a lado. La cabecera indica el rol de cada una.
 
-| Ventana                    | Menú            | Botones                              | Columna «Límite de crédito» |
-| -------------------------- | --------------- | ------------------------------------ | --------------------------- |
-| operador (Usuario normal)  | Solo Clientes   | Nuevo                                | No                          |
-| supervisor (Administrador) | Tres pantallas  | Nuevo, Editar, Eliminar, Exportar    | Sí                          |
+| Ventana                    | Menú                               |
+| -------------------------- | ---------------------------------- |
+| operador (Usuario normal)  | Solo Clientes                      |
+| supervisor (Administrador) | Clientes, Oportunidades y Reportes |
 
-**b) La matriz.** Portal → **Matriz de permisos** → CRM. Es la lámina que resume el proyecto: roles en columnas, pantallas y botones en filas.
+**b) La matriz.** Portal → **Matriz de permisos** → CRM. Es la lámina que resume el proyecto: roles en columnas, familias y pantallas en filas.
 
-**c) Cambiar un permiso en vivo.** Portal → Roles y permisos → Editar «Usuario normal». Marcar «Botón Exportar» y «Columna Límite de crédito». Guardar. Recargar la ventana del operador: aparecen el botón y la columna, **sin que cierre sesión**.
+**c) Cambiar un permiso en vivo.** Portal → Roles y permisos → Editar «Usuario normal». Marcar «Reportes comerciales». Guardar. Volver a la ventana del operador: aparece la opción en el menú, **sin que cierre sesión**. Abrirla: la grilla muestra los datos.
 
 **d) El bloqueo es del servidor.** Dos pruebas rápidas:
 
-1. Con el operador, escribir a mano `http://localhost:5001/reportes`. Resultado: «Acceso no disponible». Conocer la dirección no alcanza.
-2. Dejar abierta la pantalla del operador con el botón Nuevo visible. Desde el portal, quitarle «Botón Nuevo». **Sin recargar**, pulsar Nuevo y Guardar. Resultado: el servidor lo rechaza y el botón desaparece.
+1. Quitar de nuevo «Reportes comerciales» y, con el operador, escribir a mano `http://localhost:5001/reportes`. Resultado: «Acceso no disponible». Conocer la dirección no alcanza.
+2. Con una pestaña antigua donde la opción siga visible, pulsarla. El servidor la rechaza igual: el menú viejo no concede permiso.
 
-**e) Quitar la grilla.** Desmarcar «Ver grilla»: la pantalla sigue en el menú, pero ya no entrega los datos.
-
-**f) Tres tecnologías, la misma regla.** Abrir Almacén (Java) y Facturación (Node) con el mismo usuario: mismo comportamiento, otro diseño, otro lenguaje.
+**e) Tres tecnologías, la misma regla.** Abrir Almacén (Java) y Facturación (Node) con el mismo usuario: mismo comportamiento, otro diseño, otro lenguaje.
 
 **Frase de cierre del bloque**
 
@@ -134,15 +130,27 @@ Dos puntos que conviene decir en voz alta:
 
 ---
 
-## 5. Sesiones y auditoría
+## 5. Sesiones y trazabilidad
 
 **Qué decir**
 
 - La duración de la sesión es **por rol** (por ejemplo 5 horas para un administrador, 1 hora para un usuario). Es un máximo absoluto: navegar no la renueva.
 - El administrador puede cerrar la sesión de cualquier usuario al instante. Desactivar un usuario, un rol o una aplicación también corta el acceso en la siguiente petición.
-- Todo queda registrado: ingresos, fallos de doble factor, accesos denegados y cambios de permisos. La aplicación puede escribir en la bitácora, pero no modificarla ni borrarla.
+- Todo queda registrado, en tres niveles:
+  - **Auditoría:** ingresos, fallos de doble factor, cierres y revocaciones.
+  - **Historial de cambios:** qué cambió en usuarios, roles y menús, con el valor anterior y el nuevo, y quién lo hizo.
+  - **Accesos a pantallas:** cada pantalla que alguien abrió, o intentó abrir, en cualquiera de las tres aplicaciones.
+- La aplicación puede escribir en esos registros, pero no modificarlos ni borrarlos: ni siquiera un error del sistema puede reescribir la historia.
 
-**Qué mostrar:** Portal → **Sesiones** (revocar la del operador) y Portal → **Auditoría**, filtrando por «Denegados»: ahí están los intentos bloqueados durante la demo.
+**Qué mostrar:**
+
+1. Portal → **Sesiones**: revocar la del operador.
+2. Portal → **Historial de cambios**: el permiso que se cambió en vivo en el bloque 4 aparece con «+ Reportes comerciales» y luego «− Reportes comerciales». En Roles, «Ver historial» muestra lo mismo para un solo rol.
+3. Portal → **Accesos a pantallas**, filtrando por «Denegados»: la URL directa que se intentó en el bloque 4.
+
+**Frase de cierre del bloque**
+
+> No solo sabemos quién entró: sabemos qué vio, qué intentó ver y quién cambió sus permisos.
 
 ## 6. Cierre
 
@@ -151,24 +159,24 @@ Dos puntos que conviene decir en voz alta:
 > Tres ideas para llevarse:
 >
 > 1. **La seguridad se construye una vez.** Contraseñas, doble factor y sesiones están en un solo lugar; las aplicaciones de negocio las heredan.
-> 2. **El rol gobierna la vista completa:** menús, pantallas, grillas, botones y columnas, administrados desde un panel y aplicados al instante.
-> 3. **El bloqueo es real.** No se esconde un botón: el servidor niega la operación y lo deja registrado.
+> 2. **El rol gobierna la navegación:** familias de menú y pantallas, administradas desde un panel y aplicadas al instante en tres aplicaciones.
+> 3. **El bloqueo es real.** No basta con esconder una opción: el servidor niega la pantalla y lo deja registrado.
 
 **Alcance honesto, por si preguntan**
 
-- El permiso es por rol. No hay reglas por registro («solo mis clientes», «solo mi sucursal»); eso se añadiría en cada aplicación.
+- El permiso es por pantalla. No se controlan botones ni columnas sueltas, ni reglas por registro («solo mis clientes»); eso se añadiría en cada aplicación.
 - No hay inicio único entre apps: cada una abre su propia sesión con la misma identidad.
-- Las apps de negocio son demostraciones sencillas, con una tabla genérica de registros; el objetivo es mostrar la seguridad, no el negocio.
+- Las apps de negocio son demostraciones sencillas: grillas de solo lectura sobre una tabla genérica de registros; el objetivo es mostrar la seguridad, no el negocio.
 - Corre en local por HTTP. Publicarlo requiere HTTPS y configuración de despliegue.
 
 ## Preguntas frecuentes
 
-| Pregunta                                                   | Respuesta corta                                                                                                                              |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| ¿Y si alguien llama directamente a la API de CRM?          | Necesita una sesión válida y el permiso exacto. Sin ellos recibe 401 o 403 antes de cualquier consulta a la base.                             |
-| ¿Qué pasa si se cae la aplicación de seguridad?            | Las apps deniegan el acceso. Se prefiere no entrar a entrar sin verificar.                                                                    |
-| ¿Por qué no JWT?                                           | Las sesiones se guardan en el servidor (solo su hash). Así se pueden revocar al instante, que es justo lo que se muestra en la demo.          |
-| ¿Un administrador de CRM administra la seguridad?          | No. El rol de administrador del portal es otro, reservado, y no se obtiene desde una app de negocio.                                          |
-| ¿Si pierdo el teléfono?                                    | Se usan los códigos de recuperación. Si tampoco se tienen, el administrador restablece el doble factor tras verificar la identidad.           |
-| ¿Cuesta integrar una aplicación nueva?                     | Registrarla en el portal, guardar su credencial y hacer que su backend consulte el permiso antes de cada operación. Ver [integracion.md](integracion.md). |
-| ¿Cómo se comprueba que funciona?                           | `pnpm test` (31 pruebas de seguridad), `pnpm run test:integration` y `pnpm run test:browser`, que recorre todo lo mostrado.                   |
+| Pregunta                                          | Respuesta corta                                                                                                                                                   |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ¿Y si alguien llama directamente a la API de CRM? | Necesita una sesión válida y el permiso de esa pantalla. Sin ellos recibe 401 o 403 antes de cualquier consulta a la base.                                        |
+| ¿Qué pasa si se cae la aplicación de seguridad?   | Las apps deniegan el acceso. Se prefiere no entrar a entrar sin verificar.                                                                                        |
+| ¿Por qué no JWT?                                  | Las sesiones se guardan en el servidor (solo su hash). Así se pueden revocar al instante, que es justo lo que se muestra en la demo.                              |
+| ¿Un administrador de CRM administra la seguridad? | No. El rol de administrador del portal es otro, reservado, y no se obtiene desde una app de negocio.                                                              |
+| ¿Si pierdo el teléfono?                           | Se usan los códigos de recuperación. Si tampoco se tienen, el administrador restablece el doble factor tras verificar la identidad.                               |
+| ¿Cuesta integrar una aplicación nueva?            | Registrarla en el portal, guardar su credencial y hacer que su backend consulte el permiso antes de entregar cada pantalla. Ver [integracion.md](integracion.md). |
+| ¿Cómo se comprueba que funciona?                  | `pnpm test` (31 pruebas de seguridad), `pnpm run test:integration` y `pnpm run test:browser`, que recorre todo lo mostrado.                                       |

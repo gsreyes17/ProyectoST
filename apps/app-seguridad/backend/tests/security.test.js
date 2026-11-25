@@ -25,6 +25,8 @@ let app,
   extraMenuId,
   counter = 0;
 const password = "Prueba-privada-123456";
+// Dominio corporativo configurado (ALLOWED_EMAIL_DOMAINS), por ejemplo zentra.com.
+const domain = process.env.ALLOWED_EMAIL_DOMAINS.split(",")[0].trim();
 const integrationKey = randomBytes(32).toString("hex");
 const otherKey = randomBytes(32).toString("hex");
 
@@ -48,7 +50,7 @@ before(async () => {
     `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA "${schema}" TO "${runtime}"`,
   );
   await owner.query(
-    `REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM "${runtime}"`,
+    `REVOKE UPDATE, DELETE, TRUNCATE ON audit_events, admin_changes, access_log FROM "${runtime}"`,
   );
   const url = new URL(process.env.DATABASE_URL);
   url.searchParams.set("options", `-c search_path=${schema}`);
@@ -138,7 +140,7 @@ async function newUser(
   roleIds = [roleId],
   enabled = false,
 ) {
-  const email = `prueba${++counter}@empresa.test`;
+  const email = `prueba${++counter}@${domain}`;
   const secret = security.newTotpSecret();
   const { rows } = await owner.query(
     "INSERT INTO users(email,full_name,password_hash,mfa_enabled,totp_secret) VALUES($1,$2,$3,$4,$5) RETURNING id",
@@ -403,96 +405,6 @@ test("cambiar menús aplica a la siguiente petición sin renovar la sesión", as
     menu_ids: [menuId],
   }).expect(200);
 });
-test("grillas, botones y columnas se autorizan por rol y dependen de su pantalla", async () => {
-  const create = (code, kind, menu = menuId) =>
-    adminWrite("post", "/capabilities", {
-      app_id: appId,
-      menu_id: menu,
-      code,
-      name: `Elemento ${code}`,
-      kind,
-    });
-  const grid = (await create("crm.clientes.ver", "grid").expect(201)).body.id;
-  const button = (await create("crm.clientes.crear", "button").expect(201)).body
-    .id;
-  const report = (
-    await create("crm.reportes.exportar", "button", extraMenuId).expect(201)
-  ).body.id;
-  // El código debe pertenecer a su pantalla y no repetirse.
-  await create("otra.cosa", "button").expect(400);
-  await create("crm.clientes.ver", "grid").expect(409);
-  await create("crm.clientes.x", "ventana").expect(400);
-
-  const session = await login(await newUser(appId, [roleId], true));
-  const check = (permission, status) =>
-    client("post", "/auth/introspect", session.sessionToken)
-      .send({ permission })
-      .expect(status);
-  await check("crm.clientes.ver", 403);
-  await adminWrite("put", `/roles/${roleId}/capabilities`, {
-    capability_ids: [grid],
-  }).expect(200);
-  // Se aplica en la siguiente petición, sin renovar la sesión.
-  const granted = await check("crm.clientes.ver", 200);
-  assert.deepEqual(granted.body.capabilities, ["crm.clientes.ver"]);
-  assert.deepEqual(granted.body.permissions, ["crm.clientes"]);
-  await check("crm.clientes.crear", 403);
-  const identity = await client("get", "/me", session.sessionToken).expect(200);
-  assert.deepEqual(identity.body.capabilities, ["crm.clientes.ver"]);
-
-  // Un elemento de una pantalla no asignada al rol, o de otra aplicación, se rechaza.
-  await adminWrite("put", `/roles/${roleId}/capabilities`, {
-    capability_ids: [grid, report],
-  }).expect(400);
-  const foreignRole = (
-    await owner.query(
-      "INSERT INTO roles(app_id,name,duration_minutes) VALUES($1,'Ajeno capacidades',60) RETURNING id",
-      [otherAppId],
-    )
-  ).rows[0].id;
-  await adminWrite("put", `/roles/${foreignRole}/capabilities`, {
-    capability_ids: [grid],
-  }).expect(400);
-  await check("crm.clientes.ver", 200);
-
-  // Desactivar el elemento lo retira de inmediato.
-  const body = {
-    app_id: appId,
-    menu_id: menuId,
-    code: "crm.clientes.ver",
-    name: "Ver grilla",
-    kind: "grid",
-  };
-  await adminWrite("patch", `/capabilities/${grid}`, {
-    ...body,
-    active: false,
-  }).expect(200);
-  await check("crm.clientes.ver", 403);
-  await adminWrite("patch", `/capabilities/${grid}`, body).expect(200);
-  await adminWrite("patch", `/capabilities/${grid}`, {
-    ...body,
-    code: "crm.clientes.otro",
-  }).expect(400);
-
-  // Retirar la pantalla retira sus elementos; devolverla no los restaura.
-  await adminWrite("put", `/roles/${roleId}/capabilities`, {
-    capability_ids: [grid, button],
-  }).expect(200);
-  await adminWrite("put", `/roles/${roleId}/menus`, { menu_ids: [] }).expect(
-    200,
-  );
-  await check("crm.clientes.crear", 403);
-  await adminWrite("put", `/roles/${roleId}/menus`, {
-    menu_ids: [menuId],
-  }).expect(200);
-  await check("crm.clientes", 200);
-  await check("crm.clientes.crear", 403);
-  const roles = await adminAgent.get("/api/v1/admin/roles").expect(200);
-  assert.deepEqual(
-    roles.body.find((role) => role.id === roleId).capability_ids,
-    [],
-  );
-});
 test("editar duración revoca sesiones y el próximo ingreso utiliza el nuevo tiempo", async () => {
   const user = await newUser(appId, [roleId], true);
   const session = await login(user);
@@ -580,6 +492,85 @@ test("la cuenta de ejecución puede anexar auditoría pero no modificarla ni bor
   const events = await adminAgent.get("/api/v1/admin/audit").expect(200);
   assert.ok(events.body.total > 0);
   assert.ok(events.body.items.some((event) => event.result === "DENEGADO"));
+});
+test("el historial guarda el antes y el después, y el registro de pantallas cada solicitud", async () => {
+  // Historial: alta del rol y cambio de sus pantallas, con nombres legibles.
+  const created = await adminWrite("post", "/roles", {
+    app_id: appId,
+    name: "Historial",
+    duration_minutes: 30,
+    menu_ids: [menuId],
+  }).expect(201);
+  await adminWrite("put", `/roles/${created.body.id}/menus`, {
+    menu_ids: [menuId, extraMenuId],
+  }).expect(200);
+  const history = await adminAgent
+    .get(`/api/v1/admin/changes?entity=role&entity_id=${created.body.id}`)
+    .expect(200);
+  assert.equal(history.body.total, 2);
+  const [assigned, born] = history.body.items;
+  assert.equal(born.action, "ROL_CREADO");
+  assert.equal(born.before, null);
+  assert.deepEqual(born.after.screens, ["Clientes"]);
+  assert.equal(assigned.action, "MENUS_ASIGNADOS");
+  assert.deepEqual(assigned.before.screens, ["Clientes"]);
+  assert.deepEqual(assigned.after.screens, ["Clientes", "Reportes"]);
+  assert.ok(assigned.full_name);
+
+  // El historial de usuarios no expone hashes ni secretos.
+  const user = await newUser(appId, [roleId], true);
+  await adminWrite("patch", `/users/${user.id}`, {
+    email: user.email,
+    full_name: "Nombre corregido",
+    active: true,
+  }).expect(200);
+  const userHistory = await adminAgent
+    .get(`/api/v1/admin/changes?entity=user&entity_id=${user.id}`)
+    .expect(200);
+  assert.equal(userHistory.body.items[0].after.full_name, "Nombre corregido");
+  assert.doesNotMatch(
+    JSON.stringify(userHistory.body.items),
+    /password|totp|secret|hash/i,
+  );
+
+  // Registro de pantallas: se anota la permitida y la denegada.
+  const session = await login(user);
+  await client("post", "/auth/introspect", session.sessionToken)
+    .send({ permission: "crm.clientes" })
+    .expect(200);
+  await client("post", "/auth/introspect", session.sessionToken)
+    .send({ permission: "crm.reportes" })
+    .expect(403);
+  const access = await adminAgent
+    .get(`/api/v1/admin/access?search=${encodeURIComponent(user.email)}`)
+    .expect(200);
+  const byScreen = Object.fromEntries(
+    access.body.items.map((item) => [item.permission, item]),
+  );
+  assert.equal(byScreen["crm.clientes"].allowed, true);
+  assert.equal(byScreen["crm.clientes"].screen_name, "Clientes");
+  assert.equal(byScreen["crm.reportes"].allowed, false);
+  const denied = await adminAgent
+    .get(
+      `/api/v1/admin/access?result=DENEGADO&search=${encodeURIComponent(user.email)}`,
+    )
+    .expect(200);
+  assert.deepEqual(
+    denied.body.items.map((item) => item.permission),
+    ["crm.reportes"],
+  );
+
+  // Ambas tablas son de solo anexado para la cuenta de ejecución.
+  for (const table of ["admin_changes", "access_log"]) {
+    await assert.rejects(
+      pool.query(`UPDATE ${table} SET ip_address='alterado'`),
+      (error) => error.code === "42501",
+    );
+    await assert.rejects(
+      pool.query(`DELETE FROM ${table}`),
+      (error) => error.code === "42501",
+    );
+  }
 });
 
 test("MFA configurable por usuario", async (t) => {
@@ -755,7 +746,7 @@ test("MFA configurable por usuario", async (t) => {
   await t.test(
     "el alta permite configurar MFA sin imponerlo a otros usuarios",
     async () => {
-      const email = `alta-sin-mfa@empresa.test`;
+      const email = `alta-sin-mfa@${domain}`;
       const response = await adminWrite("post", "/users", {
         email,
         full_name: "Alta sin MFA",

@@ -11,16 +11,26 @@
       "name": "Productos",
       "route": "/productos",
       "icon": "package",
-      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
       "columns": [
-        { "key": "codigo", "label": "Código", "type": "text" },
-        { "key": "nombre", "label": "Producto", "type": "text" },
-        { "key": "stock", "label": "Stock", "type": "number" },
+        {
+          "key": "codigo",
+          "label": "Código",
+          "type": "text"
+        },
+        {
+          "key": "nombre",
+          "label": "Producto",
+          "type": "text"
+        },
+        {
+          "key": "stock",
+          "label": "Stock",
+          "type": "number"
+        },
         {
           "key": "costo",
           "label": "Costo unitario",
-          "type": "number",
-          "protected": true
+          "type": "number"
         }
       ]
     },
@@ -29,12 +39,27 @@
       "name": "Movimientos",
       "route": "/movimientos",
       "icon": "activity",
-      "actions": ["ver", "crear", "exportar"],
       "columns": [
-        { "key": "fecha", "label": "Fecha", "type": "date" },
-        { "key": "producto", "label": "Producto", "type": "text" },
-        { "key": "tipo", "label": "Tipo", "type": "text" },
-        { "key": "cantidad", "label": "Cantidad", "type": "number" }
+        {
+          "key": "fecha",
+          "label": "Fecha",
+          "type": "date"
+        },
+        {
+          "key": "producto",
+          "label": "Producto",
+          "type": "text"
+        },
+        {
+          "key": "tipo",
+          "label": "Tipo",
+          "type": "text"
+        },
+        {
+          "key": "cantidad",
+          "label": "Cantidad",
+          "type": "number"
+        }
       ]
     },
     {
@@ -42,11 +67,22 @@
       "name": "Reportes de inventario",
       "route": "/reportes",
       "icon": "chart",
-      "actions": ["ver", "exportar"],
       "columns": [
-        { "key": "indicador", "label": "Indicador", "type": "text" },
-        { "key": "periodo", "label": "Periodo", "type": "text" },
-        { "key": "valor", "label": "Valor", "type": "number" }
+        {
+          "key": "indicador",
+          "label": "Indicador",
+          "type": "text"
+        },
+        {
+          "key": "periodo",
+          "label": "Periodo",
+          "type": "text"
+        },
+        {
+          "key": "valor",
+          "label": "Valor",
+          "type": "number"
+        }
       ]
     }
   ]

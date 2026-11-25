@@ -38,21 +38,9 @@ El instalador revoca `CONNECT` y `TEMPORARY` de PUBLIC solo en estas cuatro base
 6. Si IAM deniega, termina la petición sin escribir datos en la base local.
 7. Si IAM autoriza, el backend utiliza su conexión propia y registra una fila en `integration_access`.
 
-8. Dentro de la pantalla, cada operación sobre sus registros pide a IAM una capacidad propia (`<pantalla>.ver`, `.crear`, `.editar`, `.eliminar`, `.exportar`). El frontend usa la lista de capacidades de `/me` para mostrar u ocultar la grilla, los botones y las columnas; el backend la comprueba de nuevo antes de tocar su tabla `records`.
+8. La respuesta autorizada incluye los registros de la pantalla, leídos de la tabla local `records` (`module` = código de la pantalla, `data` = columnas declaradas en `backend/app.json`). La grilla es de solo lectura: el permiso del menú autoriza la pantalla y sus datos.
 
-## Modelo de autorización
-
-```text
-Rol ──< role_menus >── Menú (pantalla, dentro de una familia/grupo)
- │                        │
- └──< role_capabilities >─┴─< Capacidad: grid | button | column
-```
-
-- **Menú**: concede la entrada a la pantalla y su aparición en la navegación. Los grupos (familias) se muestran solo si contienen pantallas autorizadas.
-- **Capacidad**: grilla, botón o columna de una pantalla. Solo es efectiva si el rol conserva la pantalla y el elemento está activo. Su código empieza por el de la pantalla (`crm.clientes.crear`).
-- Ambas tablas están en `seguridad_transversal`. Las bases de negocio no guardan roles ni permisos.
-
-Cada demo guarda sus registros en una tabla local `records` (`module` = código de pantalla, `data` = columnas declaradas en `backend/app.json`). Es deliberadamente genérica: mantiene sencillas las tres aplicaciones y permite que los tres backends (Python, Java y Node) apliquen el mismo contrato. `integration_access` sigue registrando cada entrada autorizada a una pantalla.
+El registro `integration_access` permite comprobar con SQL que las apps operan en bases distintas.
 
 `GET /api/v1/integration/status` está protegido por la sesión central y devuelve la base y usuario SQL observados por el propio backend, más el número de accesos del usuario actual. Sirve para demostrar la integración mediante API; no se muestra en las pantallas.
 
@@ -60,7 +48,7 @@ Cada demo guarda sus registros en una tabla local `records` (`module` = código 
 
 Cada carpeta `frontend` tiene `package.json`, `vite.config.js`, `src/main.jsx`, componentes, estilos y `dist` propios. Las demos tienen `src/pages/index.jsx` para comenzar a implementar sus pantallas. Cambiar CRM no recompila ni cambia Almacén o Facturación, salvo que se ejecute voluntariamente el comando global de compilación.
 
-La independencia es visible: cada demo tiene su propia identidad. CRM y Almacén comparten la estructura de barra lateral (`Demo.jsx`, `demo.css`) y se diferencian con su `theme.css`; Facturación tiene un `Demo.jsx` y un `demo.css` distintos, con navegación superior. El inicio de sesión (`Auth.jsx`) conserva el mismo flujo en todas y se rediseña por app solo con CSS, bajo la clase `demo-<app>`. Lo único común es el contrato: menús y `capabilities` que entrega IAM, y la cabecera con el usuario y su rol activo.
+La independencia es visible: cada demo tiene su propia identidad. CRM y Almacén comparten la estructura de barra lateral (`Demo.jsx`, `demo.css`) y se diferencian con su `theme.css`; Facturación tiene un `Demo.jsx` y un `demo.css` distintos, con navegación superior. El inicio de sesión (`Auth.jsx`) conserva el mismo flujo en todas y cambia de disposición por app solo con CSS, bajo la clase `demo-<app>`. Lo común es el contrato: el menú que entrega IAM y la cabecera con el usuario y su rol activo.
 
 El workspace de pnpm comparte la instalación de dependencias y el lockfile, no las fuentes ni el estado de ejecución. Un cambio de dependencias actualiza el lockfile raíz y debe coordinarse entre chats.
 
@@ -70,7 +58,7 @@ El workspace de pnpm comparte la instalación de dependencias y el lockfile, no 
 - `apps/app-*/backend/.env`: conexión a su base, conexión de migración y configuración privada de esa app.
 - Demos: `CORE_URL`, `APP_ID` y `APP_KEY` apuntan a la integración HTTP con IAM.
 - Seguridad: claves de firma/cifrado y configuración corporativa; no tiene conexiones a bases de negocio.
-- `backend/app.json` de cada demo: catálogo de pantallas existentes, sus acciones, columnas (con las protegidas) y códigos de autorización, sin secretos.
+- `backend/app.json` de cada demo: catálogo de pantallas existentes, sus columnas y códigos de autorización, sin secretos.
 
 El coordinador `db:seed` prepara las apps iniciales en IAM y configura el identificador/clave en los tres `.env` locales. Es una herramienta de instalación; los runtimes no comparten archivos de secretos ni leen carpetas de otras apps.
 

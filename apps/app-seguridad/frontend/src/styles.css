@@ -4,9 +4,9 @@
   background: #f6f7fb;
   font-synthesis: none;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 16px;
   --accent: #4f46e5;
-  --muted: #858995;
+  --muted: #545760;
   --border: #e9ebf2;
   --sidebar-width: 252px;
 }
@@ -78,15 +78,15 @@ h1 {
   font-weight: 650;
 }
 h2 {
-  font-size: 17px;
+  font-size: 18px;
   letter-spacing: -0.35px;
   font-weight: 650;
 }
 h3 {
-  font-size: 15px;
+  font-size: 16px;
 }
 small {
-  font-size: 12px;
+  font-size: 14px;
 }
 svg {
   flex-shrink: 0;
@@ -94,7 +94,7 @@ svg {
 }
 code {
   font-family: Consolas, "Courier New", monospace;
-  font-size: 12px;
+  font-size: 14px;
 }
 strong {
   font-weight: 600;
@@ -123,11 +123,11 @@ strong {
 }
 .brand small {
   display: block;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 2.4px;
   font-weight: 600;
   margin-top: 3px;
-  color: #8a8b9c;
+  color: #585968;
 }
 .brand-symbol {
   display: grid;
@@ -146,7 +146,7 @@ strong {
   min-height: 39px;
   padding: 9px 15px;
   font-weight: 550;
-  font-size: 12px;
+  font-size: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -189,7 +189,7 @@ strong {
   border: 0;
   background: transparent;
   border-radius: 7px;
-  color: #858998;
+  color: #545763;
 }
 .icon-button:hover {
   background: #eeeff8;
@@ -203,7 +203,7 @@ strong {
   align-items: center;
   gap: 6px;
   font-weight: 550;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--accent);
 }
 .text-button:hover {
@@ -214,7 +214,7 @@ strong {
   align-items: center;
   gap: 6px;
   padding: 5px 9px;
-  font-size: 10px;
+  font-size: 13px;
   border-radius: 6px;
   white-space: nowrap;
   font-weight: 550;
@@ -235,7 +235,7 @@ strong {
 }
 .badge.gray {
   background: #f0f1f5;
-  color: #8a8d99;
+  color: #585b65;
 }
 .badge.amber {
   background: #fff6e5;
@@ -254,20 +254,20 @@ strong {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 650;
   flex-shrink: 0;
 }
 .avatar.small {
   width: 32px;
   height: 32px;
-  font-size: 10px;
+  font-size: 13px;
 }
 .eyebrow {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 1.6px;
   font-weight: 650;
-  color: #8b8d9f;
+  color: #595b6b;
 }
 .live-dot {
   width: 7px;
@@ -283,7 +283,7 @@ strong {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 18px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 550;
   color: #4c5060;
 }
@@ -304,24 +304,24 @@ select,
   border-radius: 8px;
   min-height: 41px;
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: 15px;
   transition:
     box-shadow 0.15s,
     border 0.15s;
 }
 .field input::placeholder {
-  color: #a3a6b4;
+  color: #6c7185;
 }
 .field small {
-  font-size: 11px;
-  color: #9396a3;
+  font-size: 14px;
+  color: #606370;
   line-height: 1.6;
   font-weight: 400;
 }
 .field input:disabled,
 .field select:disabled {
   background: #f6f7fa;
-  color: #888b99;
+  color: #565965;
 }
 .field textarea {
   resize: vertical;
@@ -338,19 +338,19 @@ select,
   background: #fff0f1;
   border: 1px solid #ffdade;
   color: #c04455;
-  font-size: 12px;
+  font-size: 14px;
   border-radius: 9px;
   line-height: 1.6;
   margin-bottom: 18px;
   max-width: 100%;
 }
 .info-box {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
   padding: 13px 15px;
   border-radius: 8px;
   background: #f1f2ff;
-  color: #686295;
+  color: #403d5c;
   margin-bottom: 18px;
 }
 .warning-box {
@@ -361,7 +361,7 @@ select,
   color: #9c792f;
   padding: 14px;
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
   margin-bottom: 20px;
 }
@@ -374,8 +374,8 @@ select,
   justify-content: center;
   gap: 12px;
   padding: 75px 20px;
-  color: #878597;
-  font-size: 13px;
+  color: #555462;
+  font-size: 15px;
 }
 .boot-screen {
   min-height: 100vh;
@@ -433,9 +433,9 @@ select,
   font-weight: 600;
 }
 .auth-story-content > p {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.85;
-  color: #a5a5c5;
+  color: #67679d;
   max-width: 335px;
 }
 .eyebrow.light {
@@ -443,18 +443,18 @@ select,
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 1.3px;
 }
 .auth-story-footer {
   display: flex;
   justify-content: space-between;
-  color: #7c7d9f;
-  font-size: 10px;
+  color: #4d4d68;
+  font-size: 13px;
   padding-top: 50px;
 }
 .auth-story-footer span {
-  color: #656789;
+  color: #414258;
 }
 .auth-benefits {
   display: flex;
@@ -466,8 +466,8 @@ select,
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #aaa8ca;
-  font-size: 10px;
+  color: #6c69a3;
+  font-size: 13px;
 }
 .auth-benefits svg {
   width: 16px;
@@ -551,7 +551,7 @@ select,
   gap: 6px;
   padding: 9px 12px;
   border-radius: 20px;
-  font-size: 9px;
+  font-size: 12px;
   color: #b8ddca;
   background: #383a5e;
   border: 1px solid #abbda21f;
@@ -570,14 +570,14 @@ select,
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  color: #999ba8;
-  font-size: 11px;
+  color: #656776;
+  font-size: 14px;
 }
 .auth-security-label {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9597a7;
+  color: #616375;
 }
 .auth-form-area {
   max-width: 365px;
@@ -605,8 +605,8 @@ select,
   line-height: 1.25;
 }
 .auth-description {
-  font-size: 13px;
-  color: #9295a3;
+  font-size: 15px;
+  color: #5f6270;
   line-height: 1.8;
   margin: 12px 0 28px;
 }
@@ -616,7 +616,7 @@ select,
 .auth-form-area .button.full-width {
   height: 44px;
   margin-top: 7px;
-  font-size: 13px;
+  font-size: 15px;
 }
 .password-field {
   position: relative;
@@ -632,7 +632,7 @@ select,
   height: 30px;
   border: none;
   background: none;
-  color: #9698a6;
+  color: #626474;
 }
 .auth-note {
   border-top: 1px solid #eff0f5;
@@ -641,20 +641,20 @@ select,
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  color: #9b9dac;
-  font-size: 10px;
+  color: #66697b;
+  font-size: 13px;
   line-height: 1.7;
 }
 .auth-note svg {
-  color: #a19bc3;
+  color: #665d9b;
   margin-top: 1px;
 }
 .auth-footer {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 9px;
-  color: #afb1bc;
+  font-size: 12px;
+  color: #777b8e;
 }
 .qr-enrollment {
   text-align: center;
@@ -671,8 +671,8 @@ select,
   height: auto;
 }
 .qr-enrollment details {
-  font-size: 10px;
-  color: #9891bc;
+  font-size: 13px;
+  color: #615790;
 }
 .qr-enrollment summary {
   cursor: pointer;
@@ -681,7 +681,7 @@ select,
   display: block;
   word-break: break-all;
   margin-top: 10px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .otp-input {
   font-size: 22px !important;
@@ -689,14 +689,14 @@ select,
   letter-spacing: 7px;
 }
 .recovery-link {
-  font-size: 11px;
+  font-size: 14px;
   margin: -7px 0 15px;
 }
 .back-login {
   display: block;
   margin: 20px auto 0;
-  font-size: 11px;
-  color: #9793a8;
+  font-size: 14px;
+  color: #635f76;
 }
 .recovery-grid {
   display: grid;
@@ -710,16 +710,16 @@ select,
   padding: 10px 5px;
   border-radius: 7px;
   text-align: center;
-  font-size: 11px;
+  font-size: 14px;
 }
 .checkbox-line {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
   margin: 20px 0;
-  color: #74778b;
+  color: #464753;
 }
 .checkbox-line input {
   margin: 3px 0 0;
@@ -749,13 +749,13 @@ select,
 }
 .role-options strong {
   display: block;
-  font-size: 12px;
+  font-size: 14px;
 }
 .role-options small {
   display: block;
   margin-top: 5px;
-  color: #9194a4;
-  font-size: 11px;
+  color: #5e6171;
+  font-size: 14px;
 }
 .role-option-icon {
   width: 35px;
@@ -786,57 +786,15 @@ select,
 .sidebar > .brand {
   padding: 0 13px;
 }
-.workspace {
-  margin: 30px 2px 28px;
-  border: 1px solid #e9eaf1;
-  border-radius: 9px;
-  padding: 11px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.workspace-monogram {
-  display: grid;
-  place-items: center;
-  width: 29px;
-  height: 31px;
-  border: 1px solid #e1dff4;
-  background: #f8f7ff;
-  color: #8d80c1;
-  border-radius: 7px;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-.workspace > span:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-}
-.workspace strong {
-  font-size: 10px;
-  font-weight: 600;
-  display: block;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-.workspace small {
-  font-size: 9px;
-  color: #a3a4b0;
-  display: block;
-  margin-top: 4px;
-}
-.workspace > svg {
-  color: #a1a2af;
-}
 .nav-caption {
   display: block;
   padding: 0 15px;
+  margin-top: 34px;
   margin-bottom: 12px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 650;
   letter-spacing: 1.6px;
-  color: #a4a7b6;
+  color: #6d7187;
 }
 .main-nav {
   display: flex;
@@ -857,16 +815,16 @@ select,
   width: 100%;
   padding: 12px 15px;
   border-radius: 8px;
-  font-size: 12px;
-  color: #858796;
+  font-size: 14px;
+  color: #545561;
   min-height: 42px;
 }
 .main-nav button svg {
-  color: #9395a4;
+  color: #606271;
 }
 .main-nav button:hover {
   background: #f8f8fd;
-  color: #5e5a8c;
+  color: #3f3c5d;
 }
 .main-nav button.active {
   background: color-mix(in srgb, var(--accent) 8%, white);
@@ -880,10 +838,10 @@ select,
   margin-left: auto;
   background: white;
   border: 1px solid #eeedf5;
-  font-size: 9px;
+  font-size: 12px;
   padding: 2px 5px;
   border-radius: 4px;
-  color: #8b8c9d;
+  color: #595a69;
 }
 .sidebar-bottom {
   margin-top: auto;
@@ -897,20 +855,20 @@ select,
   border: 1px solid #e8f1ed;
   border-radius: 9px;
   background: #fbfdfc;
-  color: #5f7b6f;
+  color: #43564e;
 }
 .security-status > span:nth-child(2) {
   flex: 1;
-  font-size: 10px;
+  font-size: 13px;
 }
 .security-status small {
   display: block;
-  color: #a2b2a9;
-  font-size: 9px;
+  color: #6c8276;
+  font-size: 12px;
   margin-top: 4px;
 }
 .security-status svg {
-  color: #88ac98;
+  color: #557965;
 }
 .sidebar-profile {
   margin: 0 -18px;
@@ -925,7 +883,7 @@ select,
   min-width: 0;
 }
 .sidebar-profile strong {
-  font-size: 10px;
+  font-size: 13px;
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -933,8 +891,8 @@ select,
   max-width: 132px;
 }
 .sidebar-profile small {
-  font-size: 9px;
-  color: #a3a5b0;
+  font-size: 12px;
+  color: #6d7080;
   display: block;
   margin-top: 4px;
 }
@@ -957,15 +915,15 @@ select,
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #a0a2af;
-  font-size: 10px;
+  color: #6b6d7e;
+  font-size: 13px;
 }
 .breadcrumb strong {
   font-weight: 500;
   color: #5c5e6e;
 }
 .breadcrumb > svg:first-child {
-  color: #999baa;
+  color: #646779;
 }
 .topbar-right {
   display: flex;
@@ -977,8 +935,8 @@ select,
   border-left: 1px solid #ebeaf2;
 }
 .session-chip {
-  font-size: 10px;
-  color: #9696a9;
+  font-size: 13px;
+  color: #626277;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1003,9 +961,9 @@ select,
   margin-bottom: 28px;
 }
 .page-title .eyebrow {
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 1.8px;
-  color: #a3a5b4;
+  color: #6c6f85;
 }
 .page-title h1 {
   margin-top: 7px;
@@ -1016,8 +974,8 @@ select,
 }
 .page-title p {
   margin-top: 8px;
-  font-size: 12px;
-  color: #9396a6;
+  font-size: 14px;
+  color: #5f6374;
 }
 .page-actions {
   display: flex;
@@ -1038,7 +996,7 @@ select,
   min-height: 178px;
 }
 .banner-tag {
-  font-size: 8px;
+  font-size: 11px;
   color: #8174ba;
   letter-spacing: 1px;
   font-weight: 600;
@@ -1053,8 +1011,8 @@ select,
   margin-top: 12px;
 }
 .welcome-banner p {
-  font-size: 11px;
-  color: #9891ad;
+  font-size: 14px;
+  color: #645c7c;
   margin-top: 9px;
   line-height: 1.7;
   max-width: 410px;
@@ -1064,7 +1022,7 @@ select,
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   color: #7360b8;
   padding: 0;
@@ -1123,8 +1081,8 @@ select,
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 10px;
-  color: #898b9c;
+  font-size: 13px;
+  color: #575968;
 }
 .stat-icon {
   width: 32px;
@@ -1147,7 +1105,7 @@ select,
 }
 .stat-icon.green {
   background: #edf8f3;
-  color: #6aac94;
+  color: #3f715f;
 }
 .stat-card > strong {
   font-size: 30px;
@@ -1160,15 +1118,15 @@ select,
   color: #444655;
 }
 .stat-card > strong > span {
-  font-size: 13px;
-  color: #d1d4dd;
+  font-size: 15px;
+  color: #969db2;
   font-weight: 400;
 }
 .stat-card > small {
-  font-size: 9px;
+  font-size: 12px;
   display: block;
   margin-top: 8px;
-  color: #a5a7b5;
+  color: #6e7186;
   line-height: 1.5;
 }
 .panel {
@@ -1185,16 +1143,16 @@ select,
   align-items: center;
 }
 .panel-heading h2 {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0;
 }
 .panel-heading p {
-  font-size: 10px;
-  color: #a0a3b2;
+  font-size: 13px;
+  color: #6a6e82;
   margin-top: 7px;
 }
 .panel-heading .text-button {
-  font-size: 10px;
+  font-size: 13px;
 }
 .overview-columns {
   display: grid;
@@ -1219,17 +1177,17 @@ select,
   flex: 1;
 }
 .app-tile strong {
-  font-size: 11px;
+  font-size: 14px;
   display: block;
 }
 .app-tile small {
-  font-size: 9px;
-  color: #a7a9b6;
+  font-size: 12px;
+  color: #707387;
   display: block;
   margin-top: 5px;
 }
 .app-tile > svg {
-  color: #a7a7ba;
+  color: #6e6e8d;
   margin-right: 3px;
 }
 .application-symbol {
@@ -1260,13 +1218,13 @@ select,
   color: #9888c5;
 }
 .protection-panel h2 {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0;
   margin: 16px 0 9px;
 }
 .protection-panel > p {
-  color: #a4a3b3;
-  font-size: 10px;
+  color: #6e6d83;
+  font-size: 13px;
   line-height: 1.9;
   max-width: 230px;
 }
@@ -1283,13 +1241,13 @@ select,
   color: #646075;
 }
 .protection-panel strong small {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 400;
-  color: #bcb7d0;
+  color: #8379a8;
 }
 .protection-panel > div > span {
-  font-size: 9px;
-  color: #9e9bac;
+  font-size: 12px;
+  color: #6a667b;
 }
 .progress-track {
   height: 5px;
@@ -1307,8 +1265,8 @@ select,
   border-radius: 10px;
 }
 .protection-panel > small {
-  font-size: 9px;
-  color: #b2acbe;
+  font-size: 12px;
+  color: #7d7391;
 }
 .table-scroll {
   overflow-x: auto;
@@ -1318,14 +1276,14 @@ table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 11px;
+  font-size: 14px;
 }
 th {
-  color: #999baa;
+  color: #646779;
   background: #fcfcfe;
   border-top: 1px solid #f0f1f7;
   border-bottom: 1px solid #f0f1f7;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 550;
   padding: 13px 19px;
   white-space: nowrap;
@@ -1333,8 +1291,8 @@ th {
 td {
   padding: 15px 19px;
   border-bottom: 1px solid #f1f2f7;
-  color: #76798a;
-  font-size: 10px;
+  color: #474953;
+  font-size: 13px;
 }
 tbody tr:last-child td {
   border-bottom: none;
@@ -1343,13 +1301,13 @@ tbody tr:hover {
   background: #fdfdff;
 }
 td strong {
-  font-size: 11px;
+  font-size: 14px;
   color: #56596c;
   font-weight: 550;
 }
 td small {
-  font-size: 9px;
-  color: #a0a3b2;
+  font-size: 12px;
+  color: #6a6e82;
   display: block;
   margin-top: 5px;
   line-height: 1.5;
@@ -1390,20 +1348,20 @@ td small {
   position: absolute;
   left: 11px;
   top: 11px;
-  color: #a0a3b2;
+  color: #6a6e82;
 }
 .search-field > input {
   border: 1px solid #e8e9f0;
   border-radius: 7px;
   padding: 11px 12px 11px 35px;
   min-height: 37px;
-  font-size: 10px;
+  font-size: 13px;
   background: white;
   width: 100%;
-  color: #717487;
+  color: #464853;
 }
 .search-field > input::placeholder {
-  color: #acaeba;
+  color: #74788c;
 }
 .table-filters {
   display: flex;
@@ -1412,13 +1370,13 @@ td small {
 }
 .table-filters select,
 .table-filters input {
-  font-size: 10px;
+  font-size: 13px;
   padding: 8px 11px;
   min-height: 36px;
   width: auto;
   max-width: 175px;
   border-color: #e8e9f0;
-  color: #9295a6;
+  color: #5e6274;
 }
 .table-filters input[type="date"] {
   max-width: 130px;
@@ -1426,8 +1384,8 @@ td small {
 .table-footer {
   border-top: 1px solid #f0f1f6;
   padding: 15px 20px;
-  color: #a2a4b3;
-  font-size: 9px;
+  color: #6b6e84;
+  font-size: 12px;
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -1443,8 +1401,8 @@ td small {
   background: white;
   border-radius: 5px;
   padding: 6px 9px;
-  font-size: 9px;
-  color: #87899b;
+  font-size: 12px;
+  color: #555767;
 }
 .person-cell,
 .name-cell {
@@ -1455,7 +1413,7 @@ td small {
 .person-cell .avatar {
   width: 32px;
   height: 32px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .tag-list {
   display: flex;
@@ -1465,10 +1423,10 @@ td small {
 }
 .tag {
   display: inline-block;
-  font-size: 8px;
+  font-size: 11px;
   border: 1px solid #e9eaf3;
   background: #fafbfe;
-  color: #9699aa;
+  color: #626578;
   border-radius: 4px;
   padding: 4px 6px;
   white-space: nowrap;
@@ -1488,7 +1446,7 @@ td small {
   place-items: center;
   border-radius: 8px;
   background: #f5f4fc;
-  color: #a39bc4;
+  color: #695c9d;
   flex-shrink: 0;
 }
 .name-cell small {
@@ -1502,8 +1460,8 @@ td small {
   border: 1px solid #ebe9f6;
   border-radius: 6px;
   padding: 6px 9px;
-  font-size: 10px;
-  color: #9b91b9;
+  font-size: 13px;
+  color: #65598b;
   white-space: nowrap;
 }
 .child-menu {
@@ -1511,16 +1469,16 @@ td small {
 }
 .child-menu:before {
   content: "↳";
-  color: #d2d1df;
-  font-size: 14px;
+  color: #9795b5;
+  font-size: 16px;
   margin-left: -9px;
 }
 .code-cell code {
-  font-size: 9px;
-  color: #858199;
+  font-size: 12px;
+  color: #545163;
 }
 .inline-label {
-  font-size: 8px;
+  font-size: 11px;
   color: #8d7ec2;
   background: #f0edfa;
   padding: 2px 5px;
@@ -1528,7 +1486,7 @@ td small {
   margin-left: 7px;
 }
 .stack-cell strong {
-  font-size: 10px;
+  font-size: 13px;
 }
 .help-note {
   margin-top: 18px;
@@ -1536,12 +1494,12 @@ td small {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.7;
-  color: #a09bb0;
+  color: #6b6580;
 }
 .help-note svg {
-  color: #b8b0cc;
+  color: #8072a4;
 }
 .application-grid {
   display: grid;
@@ -1561,13 +1519,13 @@ td small {
   margin-bottom: 22px;
 }
 .application-card h2 {
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: -0.3px;
   margin-bottom: 11px;
 }
 .application-card > p {
-  font-size: 11px;
-  color: #a0a0b1;
+  font-size: 14px;
+  color: #6a6a81;
   line-height: 1.9;
   min-height: 42px;
   flex: 1;
@@ -1587,15 +1545,15 @@ td small {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
-  color: #9395a8;
+  font-size: 12px;
+  color: #5f6176;
 }
 .application-meta code {
-  color: #aaa5b6;
+  color: #756e87;
   background: #f8f7fc;
   border: 1px solid #efedf5;
   border-radius: 4px;
-  font-size: 8px;
+  font-size: 11px;
   padding: 3px 5px;
 }
 .application-card-actions {
@@ -1605,12 +1563,12 @@ td small {
 }
 .application-card-actions .button {
   min-height: 32px;
-  font-size: 10px;
+  font-size: 13px;
   padding: 7px 10px;
 }
 .application-card-actions > a {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 13px;
 }
 .main-footer {
   margin-top: 36px;
@@ -1618,8 +1576,8 @@ td small {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 9px;
-  color: #b3b4c1;
+  font-size: 12px;
+  color: #7b7d93;
   border-top: 1px solid #eaeaf2;
   gap: 15px;
 }
@@ -1642,16 +1600,16 @@ td small {
   height: 57px;
   border-radius: 16px;
   background: #f2f1fc;
-  color: #ada4cd;
+  color: #7262a9;
   margin-bottom: 17px;
 }
 .empty h3 {
-  font-size: 14px;
-  color: #777185;
+  font-size: 16px;
+  color: #4a4653;
 }
 .empty p {
-  font-size: 11px;
-  color: #a6a2b5;
+  font-size: 14px;
+  color: #716b86;
   margin-top: 9px;
   max-width: 350px;
   line-height: 1.8;
@@ -1695,8 +1653,8 @@ td small {
   letter-spacing: -0.5px;
 }
 .modal-heading p {
-  font-size: 11px;
-  color: #9d99ad;
+  font-size: 14px;
+  color: #69647c;
   margin-top: 9px;
   line-height: 1.8;
 }
@@ -1724,8 +1682,8 @@ td small {
   flex-shrink: 0;
 }
 .form-section-title {
-  font-size: 12px;
-  color: #797286;
+  font-size: 14px;
+  color: #4b4653;
   font-weight: 600;
   margin: 24px 0 12px;
 }
@@ -1758,19 +1716,19 @@ td small {
   height: 14px;
 }
 .check-list strong {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
-  color: #777083;
+  color: #4b4752;
 }
 .check-list small {
   display: block;
-  font-size: 10px;
-  color: #aca5b8;
+  font-size: 13px;
+  color: #786d8a;
   margin-top: 4px;
 }
 .check-list > p {
   padding: 15px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .form-grid {
   display: grid;
@@ -1783,8 +1741,8 @@ td small {
   justify-content: space-between;
   position: relative;
   margin: 21px 0;
-  font-size: 12px;
-  color: #7d768a;
+  font-size: 14px;
+  color: #4b4753;
   cursor: pointer;
 }
 .toggle-row > input {
@@ -1831,12 +1789,12 @@ td small {
   margin-bottom: 20px;
 }
 .duration-presets button {
-  font-size: 10px;
+  font-size: 13px;
   border: 1px solid #e7e3f2;
   background: white;
   padding: 7px 10px;
   border-radius: 6px;
-  color: #a29ab2;
+  color: #6e6383;
 }
 .duration-presets button.selected {
   border-color: #a99cdd;
@@ -1851,9 +1809,9 @@ td small {
   background: #faf8ff;
   padding: 16px;
   line-height: 1.9;
-  color: #8b7aa7;
+  color: #594a71;
   margin-bottom: 20px;
-  font-size: 13px;
+  font-size: 15px;
 }
 .toast {
   position: fixed;
@@ -1869,7 +1827,7 @@ td small {
   align-items: center;
   gap: 10px;
   padding: 14px 17px;
-  font-size: 12px;
+  font-size: 14px;
   z-index: 200;
   max-width: 90vw;
 }
@@ -1881,7 +1839,7 @@ td small {
   place-items: center;
   background: none;
   border: none;
-  color: #b8afca;
+  color: #8272a1;
   padding: 0;
   margin-left: 12px;
 }
@@ -1920,14 +1878,14 @@ td small {
     padding: 23px;
   }
   .stat-card > small {
-    font-size: 10px;
+    font-size: 13px;
   }
   td {
     padding: 18px 22px;
-    font-size: 11px;
+    font-size: 14px;
   }
   th {
-    font-size: 10px;
+    font-size: 13px;
   }
   .application-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -2014,7 +1972,7 @@ td small {
     --sidebar-width: 200px;
   }
   .sidebar .brand {
-    font-size: 17px;
+    font-size: 18px;
     gap: 8px;
   }
   .brand-symbol {
@@ -2023,7 +1981,7 @@ td small {
     border-radius: 10px;
   }
   .sidebar .brand small {
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: 1.8px;
   }
   .workspace {
@@ -2033,7 +1991,7 @@ td small {
     display: none;
   }
   .main-nav button {
-    font-size: 11px;
+    font-size: 14px;
     gap: 10px;
     padding: 11px;
   }
@@ -2050,7 +2008,7 @@ td small {
     gap: 7px;
   }
   .page-actions .button {
-    font-size: 10px;
+    font-size: 13px;
     padding: 7px 10px;
     min-height: 33px;
   }
@@ -2074,11 +2032,11 @@ td small {
     gap: 12px;
   }
   .breadcrumb {
-    font-size: 9px;
+    font-size: 12px;
     gap: 8px;
   }
   .session-chip {
-    font-size: 9px;
+    font-size: 12px;
   }
   .welcome-banner h2 {
     font-size: 20px;
@@ -2110,7 +2068,7 @@ td small {
     max-width: 380px;
   }
   .auth-footer {
-    font-size: 9px;
+    font-size: 12px;
   }
   .toast {
     left: 50%;
@@ -2122,10 +2080,10 @@ td small {
     padding: 17px;
   }
   .application-card h2 {
-    font-size: 14px;
+    font-size: 16px;
   }
   .application-meta span {
-    font-size: 8px;
+    font-size: 11px;
   }
 }
 @media (max-width: 640px) {
@@ -2175,12 +2133,12 @@ td small {
     font-size: 25px;
   }
   .page-title p {
-    font-size: 10px;
+    font-size: 13px;
     max-width: 200px;
     line-height: 1.7;
   }
   .page-title .eyebrow {
-    font-size: 7px;
+    font-size: 10px;
   }
   .page-actions .button.secondary {
     width: 33px;
@@ -2190,7 +2148,7 @@ td small {
     gap: 0;
   }
   .page-actions .button.primary {
-    font-size: 10px;
+    font-size: 13px;
   }
   .page-actions {
     flex-direction: row;
@@ -2209,7 +2167,7 @@ td small {
     line-height: 1.4;
   }
   .welcome-banner p {
-    font-size: 10px;
+    font-size: 13px;
     max-width: 260px;
   }
   .banner-shield {
@@ -2223,7 +2181,7 @@ td small {
     padding: 15px 13px;
   }
   .stat-card-top {
-    font-size: 9px;
+    font-size: 12px;
   }
   .stat-icon {
     width: 27px;
@@ -2236,32 +2194,32 @@ td small {
     font-size: 26px;
   }
   .stat-card > small {
-    font-size: 8px;
+    font-size: 11px;
   }
   .panel-heading {
     padding: 18px 16px;
     gap: 10px;
   }
   .panel-heading h2 {
-    font-size: 12px;
+    font-size: 14px;
   }
   .panel-heading p {
-    font-size: 9px;
+    font-size: 12px;
     max-width: 180px;
     line-height: 1.7;
   }
   .panel-heading .text-button {
-    font-size: 9px;
+    font-size: 12px;
     white-space: nowrap;
   }
   .app-tiles {
     padding: 0 16px 10px;
   }
   .app-tile strong {
-    font-size: 11px;
+    font-size: 14px;
   }
   .app-tile small {
-    font-size: 9px;
+    font-size: 12px;
   }
   .application-symbol {
     width: 38px;
@@ -2295,7 +2253,7 @@ td small {
     padding: 13px 15px;
   }
   .main-footer {
-    font-size: 8px;
+    font-size: 11px;
     flex-direction: column;
     align-items: flex-start;
     gap: 9px;
@@ -2309,7 +2267,7 @@ td small {
     padding: 22px;
   }
   .application-card h2 {
-    font-size: 16px;
+    font-size: 17px;
   }
   .modal-overlay {
     padding: 15px;
@@ -2322,7 +2280,7 @@ td small {
     padding: 20px;
   }
   .modal-heading h2 {
-    font-size: 16px;
+    font-size: 17px;
   }
   .editor-body {
     padding: 20px;
@@ -2331,13 +2289,13 @@ td small {
     padding: 15px 20px;
   }
   .modal-actions .button {
-    font-size: 11px;
+    font-size: 14px;
     padding: 9px 11px;
   }
   .toast {
     width: max-content;
     max-width: 92vw;
-    font-size: 11px;
+    font-size: 14px;
     padding: 13px;
     bottom: 16px;
   }
@@ -2345,10 +2303,10 @@ td small {
     padding: 23px;
   }
   .auth-top {
-    font-size: 9px;
+    font-size: 12px;
   }
   .auth-top .auth-security-label {
-    font-size: 9px;
+    font-size: 12px;
   }
   .auth-form-area {
     padding: 45px 0;
@@ -2357,7 +2315,7 @@ td small {
     font-size: 26px;
   }
   .auth-footer {
-    font-size: 8px;
+    font-size: 11px;
     gap: 15px;
     line-height: 1.7;
   }
@@ -2365,10 +2323,10 @@ td small {
     text-align: right;
   }
   .auth-note {
-    font-size: 10px;
+    font-size: 13px;
   }
   .recovery-grid code {
-    font-size: 10px;
+    font-size: 13px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2380,101 +2338,6 @@ td small {
     scroll-behavior: auto !important;
   }
 }
-
-/* Árbol de permisos del rol: familia → pantalla → grillas, botones y columnas. */
-.permission-tree {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.permission-family {
-  margin: 0;
-  padding: 0 12px 12px;
-  border: 1px solid #e8e6f0;
-  border-radius: 9px;
-  min-width: 0;
-}
-.permission-family legend {
-  padding: 0 6px;
-}
-.permission-family label {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  cursor: pointer;
-}
-.permission-family input {
-  accent-color: var(--accent);
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-.permission-family legend strong {
-  font-size: 12px;
-  font-weight: 600;
-  color: #4b4558;
-}
-.permission-family small {
-  font-size: 10px;
-  color: #aca5b8;
-}
-.permission-page {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fbfaff;
-  border: 1px solid #f0eef6;
-}
-.permission-page.allowed {
-  background: #fff;
-  border-color: #dcd7ee;
-}
-.permission-page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.permission-page-head strong {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #4b4558;
-}
-.permission-page-head .text-button {
-  font-size: 11px;
-  white-space: nowrap;
-}
-.permission-elements {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin: 10px 0 0 23px;
-}
-.permission-element {
-  padding: 6px 10px;
-  border: 1px solid #e8e6f0;
-  border-radius: 7px;
-  background: #fff;
-  font-size: 11px;
-  color: #5d5670;
-}
-.permission-element small {
-  display: block;
-  margin-top: 2px;
-}
-.permission-element:has(input:checked) {
-  border-color: var(--accent);
-  background: #f6f4ff;
-}
-.permission-element:has(input:disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.modal.wide {
-  width: 640px;
-}
-
 /* Matriz de permisos: roles en columnas; pantallas y elementos en filas. */
 .matrix th,
 .matrix td {
@@ -2496,7 +2359,7 @@ td small {
   border-radius: 6px;
   background: transparent;
   color: #56596c;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 .matrix-role button:hover {
@@ -2506,7 +2369,7 @@ td small {
 .matrix-role small {
   display: block;
   margin-top: 3px;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 400;
 }
 .matrix tbody th {
@@ -2514,21 +2377,21 @@ td small {
   border-top: 0;
   background: transparent;
   color: #56596c;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
 }
 .matrix tbody th small {
   display: block;
   margin-top: 3px;
-  color: #a0a3b2;
-  font-size: 9px;
+  color: #6a6e82;
+  font-size: 12px;
   font-weight: 400;
 }
 .matrix .matrix-family th {
   padding: 9px 19px;
   background: #f6f5fd;
   color: #5b4fc4;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 1.2px;
   text-transform: uppercase;
@@ -2555,12 +2418,9 @@ td small {
 .matrix .matrix-page td {
   background: #fcfcfe;
 }
-.matrix .matrix-element th {
-  padding-left: 45px;
-}
 .matrix-cell {
   padding: 8px 12px;
-  color: #c9cbd6;
+  color: #8f93aa;
   text-align: center;
 }
 .matrix-cell > span {
@@ -2578,12 +2438,115 @@ td small {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #76798a;
-  font-size: 11px;
+  color: #474953;
+  font-size: 14px;
 }
 .matrix-legend .matrix-cell {
   padding: 0;
 }
 .matrix-legend .matrix-cell:not(:first-child) {
   margin-left: 12px;
+}
+
+/* Historial de cambios: detalle legible del antes y el después. */
+.change-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: #464853;
+}
+.change-detail strong {
+  color: #4c4f62;
+  font-weight: 600;
+}
+.change-detail svg {
+  margin: 0 5px;
+  vertical-align: -2px;
+  color: #6a6e82;
+}
+.change-from {
+  color: #66697d;
+  text-decoration: line-through;
+}
+.change-to {
+  color: #33364a;
+  font-weight: 500;
+}
+.change-added,
+.change-removed {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.change-added {
+  background: #e6f7ee;
+  color: #1f8a53;
+}
+.change-removed {
+  background: #fdecee;
+  color: #c2414f;
+}
+.history-body {
+  padding: 0;
+}
+.history-body .table-scroll {
+  max-height: min(60vh, 560px);
+}
+.modal.wide:has(.history-body) {
+  width: 880px;
+}
+
+/* Inicio de sesión sin textos en las esquinas: el panel agrupa marca y
+   mensaje en el centro, y el formulario queda centrado en su columna. */
+.auth-story {
+  justify-content: center;
+  gap: 40px;
+}
+.auth-story-content {
+  padding: 0;
+}
+
+/* Interruptor de doble factor en la lista de usuarios. */
+.mfa-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mfa-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #cfd2dd;
+  transition: background 150ms ease;
+}
+.mfa-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px #0003;
+  transition: transform 150ms ease;
+}
+.mfa-switch[aria-checked="true"] {
+  background: var(--accent);
+}
+.mfa-switch[aria-checked="true"] span {
+  transform: translateX(16px);
+}
+/* El panel del inicio de sesión es oscuro: su texto va más claro, no más oscuro. */
+.auth-story-content > p {
+  color: #c9c8e6;
 }

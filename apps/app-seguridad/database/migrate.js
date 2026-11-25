@@ -51,7 +51,7 @@ export async function migrate(
       `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${quoted}`,
     );
     await client.query(
-      `REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM ${quoted}`,
+      `REVOKE UPDATE, DELETE, TRUNCATE ON audit_events, admin_changes, access_log FROM ${quoted}`,
     );
     await client.query(`REVOKE ALL ON schema_migrations FROM ${quoted}`);
   } finally {

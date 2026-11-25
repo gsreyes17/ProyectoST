@@ -53,17 +53,6 @@ const roleSchema = z.object({
   duration_minutes: z.coerce.number().int().min(1).max(1440),
   active: z.boolean().default(true),
   menu_ids: ids.default([]),
-  // Opcional: si se omite, se conservan las capacidades de las pantallas que sigan asignadas.
-  capability_ids: ids.optional(),
-});
-const capabilitySchema = z.object({
-  app_id: idSchema,
-  menu_id: idSchema,
-  code: z.string().regex(/^[a-z][a-z0-9_.-]{1,119}$/),
-  name: label,
-  kind: z.enum(["grid", "button", "column"]),
-  position: z.coerce.number().int().min(0).max(1000).default(0),
-  active: z.boolean().default(true),
 });
 const menuSchema = z.object({
   app_id: idSchema,
@@ -99,7 +88,50 @@ async function existing(db, table, id) {
   if (!rows[0]) throw new HttpError(404, "Registro no encontrado.");
   return rows[0];
 }
+// Vista legible de cada registro para el historial de cambios. Usa nombres en
+// lugar de identificadores y nunca incluye hashes, secretos MFA ni claves.
+const snapshots = {
+  user: `SELECT u.email,u.full_name,u.active,u.mfa_required,
+    COALESCE((SELECT json_agg(a.name ORDER BY a.id) FROM user_applications ua
+      JOIN applications a ON a.id=ua.app_id WHERE ua.user_id=u.id),'[]') AS applications,
+    COALESCE((SELECT json_agg(a.name||': '||r.name ORDER BY a.id,r.id) FROM user_roles ur
+      JOIN roles r ON r.id=ur.role_id JOIN applications a ON a.id=r.app_id WHERE ur.user_id=u.id),'[]') AS roles
+    FROM users u WHERE u.id=$1`,
+  role: `SELECT r.name,a.name AS application,r.description,r.duration_minutes,r.active,
+    COALESCE((SELECT json_agg(m.name ORDER BY m.position,m.id) FROM role_menus rm
+      JOIN menus m ON m.id=rm.menu_id WHERE rm.role_id=r.id),'[]') AS screens
+    FROM roles r JOIN applications a ON a.id=r.app_id WHERE r.id=$1`,
+  menu: `SELECT m.name,a.name AS application,m.code,m.route,p.name AS parent,m.position,m.icon,m.active
+    FROM menus m JOIN applications a ON a.id=m.app_id LEFT JOIN menus p ON p.id=m.parent_id WHERE m.id=$1`,
+  application: `SELECT name,slug,platform,description,active FROM applications WHERE id=$1`,
+};
+async function snapshot(db, entity, id) {
+  return (await db.query(snapshots[entity], [id])).rows[0] || null;
+}
+// Registro afectado por cada evento administrativo. La revocación de sesiones
+// queda solo en la auditoría: no modifica la configuración.
+const trackedEvents = {
+  USUARIO_CREADO: "user",
+  USUARIO_EDITADO: "user",
+  APLICACIONES_ASIGNADAS: "user",
+  ROLES_ASIGNADOS: "user",
+  MFA_RESTABLECIDO: "user",
+  CLAVE_RESTABLECIDA: "user",
+  APLICACION_CREADA: "application",
+  APLICACION_EDITADA: "application",
+  CREDENCIAL_ROTADA: "application",
+  ROL_CREADO: "role",
+  ROL_EDITADO: "role",
+  MENUS_ASIGNADOS: "role",
+  MENU_CREADO: "menu",
+  MENU_EDITADO: "menu",
+};
 async function change(req, event, work) {
+  // En las altas no hay :id; se usa el id que devuelve `work`.
+  const track = trackedEvents[event] && {
+    entity: trackedEvents[event],
+    id: req.params.id ? Number(req.params.id) : null,
+  };
   return transaction(async (db) => {
     // Serializa cambios administrativos para proteger al último administrador.
     await db.query("SELECT pg_advisory_xact_lock(91831)");
@@ -110,6 +142,9 @@ async function change(req, event, work) {
     );
     if (!currentSession?.is_system_admin)
       throw new HttpError(401, "Tu sesión administrativa ya no está vigente.");
+    const before = track?.id
+      ? await snapshot(db, track.entity, track.id)
+      : null;
     const result = await work(db);
     await assertAdminRemains(db);
     await audit(db, {
@@ -119,6 +154,21 @@ async function change(req, event, work) {
       ip: req.ip,
       detail: `Registro ${req.params.id || result?.id || "nuevo"}`,
     });
+    const entityId = track?.id ?? result?.id;
+    if (track && entityId)
+      await db.query(
+        `INSERT INTO admin_changes(user_id,entity,entity_id,action,before,after,ip_address)
+        VALUES($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          req.session.user_id,
+          track.entity,
+          entityId,
+          event,
+          before && JSON.stringify(before),
+          JSON.stringify(await snapshot(db, track.entity, entityId)),
+          req.ip,
+        ],
+      );
     return result;
   });
 }
@@ -130,7 +180,9 @@ admin.get("/overview", async (req, res) => {
     (SELECT COUNT(*)::int FROM roles WHERE active) AS roles,
     (SELECT COUNT(*)::int FROM sessions WHERE revoked_at IS NULL AND expires_at>NOW()) AS sessions,
     (SELECT COUNT(*)::int FROM users WHERE mfa_enabled AND active) AS mfa_users,
-    (SELECT COUNT(*)::int FROM audit_events WHERE result='DENEGADO' AND created_at>NOW()-INTERVAL '24 hours') AS denied`);
+    (SELECT COUNT(*)::int FROM audit_events WHERE result='DENEGADO' AND created_at>NOW()-INTERVAL '24 hours') AS denied,
+    (SELECT COUNT(*)::int FROM access_log WHERE created_at>NOW()-INTERVAL '24 hours') AS screens_today,
+    (SELECT COUNT(*)::int FROM admin_changes WHERE created_at>NOW()-INTERVAL '7 days') AS changes_week`);
   const { rows: recent } =
     await pool.query(`SELECT e.*,u.full_name,a.name AS app_name FROM audit_events e
     LEFT JOIN users u ON u.id=e.user_id LEFT JOIN applications a ON a.id=e.app_id ORDER BY e.id DESC LIMIT 6`);
@@ -331,7 +383,6 @@ admin.get("/roles", async (req, res) =>
     (
       await pool.query(`SELECT r.*,a.name AS app_name,
   COALESCE((SELECT json_agg(rm.menu_id) FROM role_menus rm WHERE rm.role_id=r.id),'[]') AS menu_ids,
-  COALESCE((SELECT json_agg(rc.capability_id) FROM role_capabilities rc WHERE rc.role_id=r.id),'[]') AS capability_ids,
   (SELECT COUNT(*)::int FROM user_roles ur WHERE ur.role_id=r.id) AS users_count
   FROM roles r JOIN applications a ON a.id=r.app_id ORDER BY r.id`)
     ).rows,
@@ -346,35 +397,6 @@ async function setRoleMenus(db, roleId, appId, selected) {
     await db.query(
       "INSERT INTO role_menus(role_id,menu_id,app_id) VALUES($1,$2,$3)",
       [roleId, menuId, appId],
-    );
-  }
-  // Retirar una pantalla retira sus grillas, botones y columnas: volver a
-  // asignarla después no restaura esos permisos de forma silenciosa.
-  await db.query(
-    `DELETE FROM role_capabilities rc USING capabilities c
-    WHERE rc.capability_id=c.id AND rc.role_id=$1
-    AND c.menu_id NOT IN (SELECT menu_id FROM role_menus WHERE role_id=$1)`,
-    [roleId],
-  );
-}
-async function setRoleCapabilities(db, roleId, appId, selected) {
-  await db.query("DELETE FROM role_capabilities WHERE role_id=$1", [roleId]);
-  for (const capabilityId of new Set(selected)) {
-    const capability = await existing(db, "capabilities", capabilityId);
-    if (capability.app_id !== appId)
-      throw new HttpError(400, "Selecciona elementos de la misma aplicación.");
-    const { rowCount } = await db.query(
-      "SELECT 1 FROM role_menus WHERE role_id=$1 AND menu_id=$2",
-      [roleId, capability.menu_id],
-    );
-    if (!rowCount)
-      throw new HttpError(
-        400,
-        "Asigna primero la pantalla a la que pertenece cada elemento.",
-      );
-    await db.query(
-      "INSERT INTO role_capabilities(role_id,capability_id,app_id) VALUES($1,$2,$3)",
-      [roleId, capabilityId, appId],
     );
   }
 }
@@ -395,12 +417,6 @@ admin.post("/roles", async (req, res) => {
         ],
       );
       await setRoleMenus(db, rows[0].id, data.app_id, data.menu_ids);
-      await setRoleCapabilities(
-        db,
-        rows[0].id,
-        data.app_id,
-        data.capability_ids || [],
-      );
       return rows[0];
     }),
   );
@@ -418,8 +434,6 @@ admin.patch("/roles/:id", async (req, res) => {
         [data.name, data.description, data.duration_minutes, data.active, id],
       );
       await setRoleMenus(db, id, data.app_id, data.menu_ids);
-      if (data.capability_ids)
-        await setRoleCapabilities(db, id, data.app_id, data.capability_ids);
       if (!data.active || previous.duration_minutes !== data.duration_minutes) {
         await db.query(
           "UPDATE sessions SET revoked_at=NOW() WHERE role_id=$1 AND revoked_at IS NULL",
@@ -445,99 +459,6 @@ admin.put("/roles/:id/menus", async (req, res) => {
     }),
   );
 });
-admin.put("/roles/:id/capabilities", async (req, res) => {
-  const id = validate(idSchema, req.params.id);
-  const selected = validate(
-    z.object({ capability_ids: ids }),
-    req.body,
-  ).capability_ids;
-  res.json(
-    await change(req, "CAPACIDADES_ASIGNADAS", async (db) => {
-      const role = await existing(db, "roles", id);
-      await setRoleCapabilities(db, id, role.app_id, selected);
-      return { id };
-    }),
-  );
-});
-admin.get("/capabilities", async (req, res) =>
-  res.json(
-    (
-      await pool.query(
-        `SELECT c.*,a.name AS app_name,m.name AS menu_name,m.code AS menu_code
-        FROM capabilities c JOIN applications a ON a.id=c.app_id JOIN menus m ON m.id=c.menu_id
-        ORDER BY c.app_id,m.position,m.id,c.position,c.id`,
-      )
-    ).rows,
-  ),
-);
-async function saveCapability(req, update) {
-  const data = validate(capabilitySchema, req.body);
-  const id = update ? validate(idSchema, req.params.id) : null;
-  return change(
-    req,
-    update ? "CAPACIDAD_EDITADA" : "CAPACIDAD_CREADA",
-    async (db) => {
-      if (id) {
-        const previous = await existing(db, "capabilities", id);
-        if (
-          previous.app_id !== data.app_id ||
-          previous.menu_id !== data.menu_id ||
-          previous.code !== data.code
-        )
-          throw new HttpError(
-            400,
-            "El código, la pantalla y la aplicación permanecen estables.",
-          );
-        await db.query(
-          "UPDATE capabilities SET name=$1,kind=$2,position=$3,active=$4 WHERE id=$5",
-          [data.name, data.kind, data.position, data.active, id],
-        );
-        return { id };
-      }
-      const app = await existing(db, "applications", data.app_id);
-      if (app.is_internal)
-        throw new HttpError(400, "Los permisos internos son reservados.");
-      const menu = await existing(db, "menus", data.menu_id);
-      if (menu.app_id !== data.app_id || !menu.route)
-        throw new HttpError(
-          400,
-          "Selecciona una pantalla de la misma aplicación.",
-        );
-      // El prefijo evita colisiones con los códigos de pantalla en la introspección.
-      if (!data.code.startsWith(`${menu.code}.`))
-        throw new HttpError(
-          400,
-          `El código debe comenzar con «${menu.code}.», por ejemplo ${menu.code}.crear.`,
-        );
-      const { rowCount } = await db.query(
-        "SELECT 1 FROM menus WHERE app_id=$1 AND code=$2",
-        [data.app_id, data.code],
-      );
-      if (rowCount)
-        throw new HttpError(409, "Ya existe una pantalla con ese código.");
-      return (
-        await db.query(
-          "INSERT INTO capabilities(app_id,menu_id,code,name,kind,position,active) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id",
-          [
-            data.app_id,
-            data.menu_id,
-            data.code,
-            data.name,
-            data.kind,
-            data.position,
-            data.active,
-          ],
-        )
-      ).rows[0];
-    },
-  );
-}
-admin.post("/capabilities", async (req, res) =>
-  res.status(201).json(await saveCapability(req, false)),
-);
-admin.patch("/capabilities/:id", async (req, res) =>
-  res.json(await saveCapability(req, true)),
-);
 admin.get("/menus", async (req, res) =>
   res.json(
     (
@@ -575,15 +496,6 @@ async function saveMenu(req, update) {
       );
       return { id };
     }
-    if (
-      (
-        await db.query(
-          "SELECT 1 FROM capabilities WHERE app_id=$1 AND code=$2",
-          [data.app_id, data.code],
-        )
-      ).rowCount
-    )
-      throw new HttpError(409, "Ya existe un elemento con ese código.");
     return (
       await db.query(
         "INSERT INTO menus(app_id,code,name,route,icon,position,parent_id,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
@@ -696,6 +608,65 @@ admin.post("/users/:id/reset-password", recoveryLimit, async (req, res) => {
     await db.query("UPDATE users SET password_hash=$1 WHERE id=$2", [hash, id]);
   });
   res.json({ ok: true });
+});
+const dateParam = (value) =>
+  value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+// Historial de cambios: por registro (entity + entity_id) o general con filtros.
+admin.get("/changes", async (req, res) => {
+  const entity = Object.keys(snapshots).includes(req.query.entity)
+    ? req.query.entity
+    : "";
+  const entityId = /^\d{1,9}$/.test(String(req.query.entity_id || ""))
+    ? Number(req.query.entity_id)
+    : null;
+  const search = String(req.query.search || "").slice(0, 100);
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const { rows } = await pool.query(
+    `SELECT c.id,c.created_at,c.entity,c.entity_id,c.action,c.before,c.after,c.ip_address,
+    u.full_name,u.email,COUNT(*) OVER()::int AS total
+    FROM admin_changes c LEFT JOIN users u ON u.id=c.user_id
+    WHERE ($1='' OR c.entity=$1) AND ($2::int IS NULL OR c.entity_id=$2)
+    AND (COALESCE(u.full_name,'') ILIKE $3 OR c.action ILIKE $3 OR COALESCE(c.after::text,c.before::text,'') ILIKE $3)
+    AND ($4::date IS NULL OR c.created_at >= $4::date)
+    AND ($5::date IS NULL OR c.created_at < $5::date+INTERVAL '1 day')
+    ORDER BY c.id DESC LIMIT 50 OFFSET $6`,
+    [
+      entity,
+      entityId,
+      `%${search}%`,
+      dateParam(req.query.from),
+      dateParam(req.query.until),
+      (page - 1) * 50,
+    ],
+  );
+  res.json({ items: rows, total: rows[0]?.total || 0, page, limit: 50 });
+});
+// Pantallas solicitadas por las aplicaciones, permitidas o denegadas.
+admin.get("/access", async (req, res) => {
+  const search = String(req.query.search || "").slice(0, 100);
+  const result = ["OK", "DENEGADO"].includes(req.query.result)
+    ? req.query.result
+    : "";
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const { rows } = await pool.query(
+    `SELECT l.id,l.created_at,l.permission,l.allowed,l.ip_address,u.full_name,u.email,
+    a.name AS app_name,r.name AS role_name,m.name AS screen_name,m.route,COUNT(*) OVER()::int AS total
+    FROM access_log l JOIN users u ON u.id=l.user_id JOIN applications a ON a.id=l.app_id
+    LEFT JOIN roles r ON r.id=l.role_id LEFT JOIN menus m ON m.app_id=l.app_id AND m.code=l.permission
+    WHERE (u.full_name ILIKE $1 OR u.email ILIKE $1 OR a.name ILIKE $1 OR l.permission ILIKE $1 OR COALESCE(m.name,'') ILIKE $1)
+    AND ($2='' OR l.allowed=($2='OK'))
+    AND ($3::date IS NULL OR l.created_at >= $3::date)
+    AND ($4::date IS NULL OR l.created_at < $4::date+INTERVAL '1 day')
+    ORDER BY l.id DESC LIMIT 50 OFFSET $5`,
+    [
+      `%${search}%`,
+      result,
+      dateParam(req.query.from),
+      dateParam(req.query.until),
+      (page - 1) * 50,
+    ],
+  );
+  res.json({ items: rows, total: rows[0]?.total || 0, page, limit: 50 });
 });
 admin.get("/audit", async (req, res) => {
   const search = String(req.query.search || "").slice(0, 100);

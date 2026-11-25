@@ -43,8 +43,15 @@ import {
   ArrowRight,
   Fingerprint,
   ChevronDown,
-  Trash2,
   Download,
+  Upload,
+  Printer,
+  Send,
+  Filter,
+  Calendar,
+  MapPin,
+  ArrowDownLeft,
+  TrendingUp,
 } from "lucide-react";
 
 export const icons = {
@@ -85,8 +92,15 @@ export const icons = {
   fingerprint: Fingerprint,
   down: ChevronDown,
   layers: Layers3,
-  trash: Trash2,
   download: Download,
+  upload: Upload,
+  printer: Printer,
+  send: Send,
+  filter: Filter,
+  calendar: Calendar,
+  pin: MapPin,
+  inbound: ArrowDownLeft,
+  trend: TrendingUp,
 };
 export function Icon({ name, size = 20, ...props }) {
   const Component = icons[name] || LayoutGrid;

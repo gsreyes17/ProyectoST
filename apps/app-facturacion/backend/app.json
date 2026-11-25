@@ -11,17 +11,31 @@
       "name": "Comprobantes",
       "route": "/comprobantes",
       "icon": "file",
-      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
       "columns": [
-        { "key": "numero", "label": "Número", "type": "text" },
-        { "key": "cliente", "label": "Cliente", "type": "text" },
-        { "key": "fecha", "label": "Fecha", "type": "date" },
-        { "key": "total", "label": "Total", "type": "number" },
+        {
+          "key": "numero",
+          "label": "Número",
+          "type": "text"
+        },
+        {
+          "key": "cliente",
+          "label": "Cliente",
+          "type": "text"
+        },
+        {
+          "key": "fecha",
+          "label": "Fecha",
+          "type": "date"
+        },
+        {
+          "key": "total",
+          "label": "Total",
+          "type": "number"
+        },
         {
           "key": "descuento",
           "label": "Descuento",
-          "type": "number",
-          "protected": true
+          "type": "number"
         }
       ]
     },
@@ -30,10 +44,17 @@
       "name": "Series y numeración",
       "route": "/series",
       "icon": "layers",
-      "actions": ["ver", "crear", "editar"],
       "columns": [
-        { "key": "serie", "label": "Serie", "type": "text" },
-        { "key": "tipo", "label": "Tipo de comprobante", "type": "text" },
+        {
+          "key": "serie",
+          "label": "Serie",
+          "type": "text"
+        },
+        {
+          "key": "tipo",
+          "label": "Tipo de comprobante",
+          "type": "text"
+        },
         {
           "key": "correlativo",
           "label": "Correlativo actual",
@@ -46,11 +67,22 @@
       "name": "Reportes de facturación",
       "route": "/reportes",
       "icon": "chart",
-      "actions": ["ver", "exportar"],
       "columns": [
-        { "key": "indicador", "label": "Indicador", "type": "text" },
-        { "key": "periodo", "label": "Periodo", "type": "text" },
-        { "key": "valor", "label": "Valor", "type": "number" }
+        {
+          "key": "indicador",
+          "label": "Indicador",
+          "type": "text"
+        },
+        {
+          "key": "periodo",
+          "label": "Periodo",
+          "type": "text"
+        },
+        {
+          "key": "valor",
+          "label": "Valor",
+          "type": "number"
+        }
       ]
     }
   ]

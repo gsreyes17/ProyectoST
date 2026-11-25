@@ -91,10 +91,6 @@ export default function Auth({ config, onAuthenticated, notice }) {
           </span>
         </a>
         <div className="auth-story-content">
-          <span className="eyebrow light">
-            <span className="live-dot" />
-            CONTROL DE ACCESO CENTRALIZADO
-          </span>
           <h1>
             {isDemo ? (
               config.description
@@ -108,57 +104,12 @@ export default function Auth({ config, onAuthenticated, notice }) {
           </h1>
           <p>
             {isDemo
-              ? "Una experiencia de acceso compartida. Tus menús y páginas se adaptan a tu rol."
-              : "Administra identidades, define permisos y protege el acceso a todas tus aplicaciones."}
+              ? "Ingresa con tu cuenta corporativa. Los menús que verás dependen de tu rol."
+              : "Administra usuarios, roles y el acceso a todas tus aplicaciones."}
           </p>
-          <div className="security-illustration" aria-hidden="true">
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
-            <div className="orbit orbit-three" />
-            <div className="orbit-icon orbit-user">
-              <Icon name="users" size={27} />
-            </div>
-            <div className="orbit-icon orbit-key">
-              <Icon name="key" size={25} />
-            </div>
-            <div className="orbit-icon orbit-app">
-              <Icon name="apps" size={25} />
-            </div>
-            <div className="shield-center">
-              <Icon name="shield" size={70} />
-            </div>
-            <span className="illustration-label">
-              <Icon name="check" size={15} />
-              Identidad verificada
-            </span>
-          </div>
-          <div className="auth-benefits">
-            <span>
-              <Icon name="fingerprint" />
-              Doble factor
-            </span>
-            <span>
-              <Icon name="roles" />
-              Acceso por rol
-            </span>
-            <span>
-              <Icon name="sessions" />
-              Sesiones seguras
-            </span>
-          </div>
         </div>
-        <span className="auth-story-footer">
-          {config.companyName} <span>Seguridad que conecta.</span>
-        </span>
       </aside>
       <main className="auth-main">
-        <div className="auth-top">
-          <span>{config.companyName}</span>
-          <span className="auth-security-label">
-            <Icon name="lock" size={14} />
-            Acceso protegido
-          </span>
-        </div>
         <div className="auth-form-area">
           <div className="auth-step-icon">
             <Icon
@@ -192,7 +143,7 @@ export default function Auth({ config, onAuthenticated, notice }) {
             {showingCodes
               ? "Estos códigos se muestran una sola vez. Úsalos si pierdes acceso a tu autenticador."
               : flow.state === "PASSWORD"
-                ? "Ingresa tus credenciales para continuar."
+                ? "Ingresa tu correo corporativo y tu contraseña."
                 : flow.state === "ENROLL_REQUIRED"
                   ? "Escanea el QR con Google Authenticator, Microsoft Authenticator u otra app compatible."
                   : flow.state === "ROLE_REQUIRED"
@@ -256,7 +207,7 @@ export default function Auth({ config, onAuthenticated, notice }) {
                     type="email"
                     name="email"
                     autoComplete="username"
-                    placeholder={`tu.nombre@${config.domains?.[0] || "empresa.test"}`}
+                    placeholder="Ingresa tu correo corporativo"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     required
@@ -377,19 +328,7 @@ export default function Auth({ config, onAuthenticated, notice }) {
               Volver al inicio de sesión
             </button>
           )}
-          <div className="auth-note">
-            <Icon name="shield" size={17} />
-            <span>
-              {isDemo
-                ? "Identidad, permisos y sesión validados por el portal transversal."
-                : "El doble factor se solicita según la configuración de tu cuenta."}
-            </span>
-          </div>
         </div>
-        <footer className="auth-footer">
-          <span>{config.appName}</span>
-          <span>Acceso exclusivo para usuarios autorizados</span>
-        </footer>
       </main>
     </div>
   );

@@ -78,102 +78,6 @@ public class Main {
     private static void cookie(HttpExchange exchange, String value, String expires) {
         exchange.getResponseHeaders().add("Set-Cookie", COOKIE + "=" + value + "; Path=/; HttpOnly; SameSite=Lax; Expires=" + expires + (secure ? "; Secure" : ""));
     }
-    // --- Registros de cada pantalla ---------------------------------------
-    // Cada operación solicita a IAM su capacidad exacta (<pantalla>.<accion>)
-    // antes de consultar la base. Ocultar el botón en React no autoriza nada.
-    private static boolean validCsrf(HttpExchange exchange) throws Exception {
-        String token = token(exchange);
-        String received = exchange.getRequestHeaders().getFirst("X-CSRF-Token");
-        return token != null && received != null
-            && MessageDigest.isEqual(csrf(token).getBytes(StandardCharsets.UTF_8), received.getBytes(StandardCharsets.UTF_8));
-    }
-    private static Map<String, String> query(HttpExchange exchange) {
-        Map<String, String> values = new HashMap<>();
-        String raw = exchange.getRequestURI().getRawQuery();
-        if (raw != null) for (String pair : raw.split("&")) {
-            String[] parts = pair.split("=", 2);
-            values.put(URLDecoder.decode(parts[0], StandardCharsets.UTF_8), parts.length == 2 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "");
-        }
-        return values;
-    }
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> cleanRecord(List<Map<String, Object>> columns, Object body) {
-        if (!(body instanceof Map<?, ?> map) || !(map.get("data") instanceof Map<?, ?> source)) return null;
-        Map<String, Object> record = new LinkedHashMap<>();
-        for (Map<String, Object> column : columns) {
-            Object value = source.get(column.get("key"));
-            if ("number".equals(column.get("type"))) {
-                if (!(value instanceof Double number) || number.isNaN() || number.isInfinite()) return null;
-            } else {
-                if (!(value instanceof String text)) return null;
-                text = text.trim();
-                if (text.isEmpty() || text.length() > 120) return null;
-                if ("date".equals(column.get("type")) && !text.matches("\\d{4}-\\d{2}-\\d{2}")) return null;
-                value = text;
-            }
-            record.put((String) column.get("key"), value);
-        }
-        return record;
-    }
-    @SuppressWarnings("unchecked")
-    private static void records(HttpExchange exchange, String path, String method) throws Exception {
-        String prefix = "/api/v1/records";
-        String idText = path.length() > prefix.length() ? path.substring(prefix.length() + 1) : null;
-        Map<String, String> query = query(exchange);
-        String action = switch (method) {
-            case "GET" -> idText == null ? ("1".equals(query.get("export")) ? "exportar" : "ver") : null;
-            case "POST" -> idText == null ? "crear" : null;
-            case "PATCH" -> idText != null ? "editar" : null;
-            case "DELETE" -> idText != null ? "eliminar" : null;
-            default -> null;
-        };
-        if (action == null) { send(exchange, 404, Map.of("error", "Endpoint no disponible.")); return; }
-        if (!method.equals("GET") && !validCsrf(exchange)) { send(exchange, 403, Map.of("error", "Verificación de solicitud inválida.")); return; }
-        if (idText != null && !idText.matches("\\d{1,15}")) { send(exchange, 404, Map.of("error", "Registro no encontrado.")); return; }
-        Map<String, Object> page = null;
-        for (Map<String, Object> candidate : (List<Map<String, Object>>) settings.get("pages"))
-            if (candidate.get("route").equals(query.get("path"))) page = candidate;
-        if (page == null || !((List<Object>) page.get("actions")).contains(action)) { send(exchange, 404, Map.of("error", "Operación no disponible.")); return; }
-        String code = (String) page.get("code");
-        Reply reply = upstream(exchange, "/auth/introspect", "POST", Map.of("permission", code + "." + action));
-        if (reply.status != 200) { send(exchange, reply.status, reply.body); return; }
-        // Las columnas protegidas solo se leen o escriben con su propia capacidad.
-        Collection<Object> granted = (Collection<Object>) reply.body.getOrDefault("capabilities", List.of());
-        List<Map<String, Object>> columns = new ArrayList<>();
-        for (Map<String, Object> column : (List<Map<String, Object>>) page.get("columns"))
-            if (!Boolean.TRUE.equals(column.get("protected")) || granted.contains(code + ".col." + column.get("key"))) columns.add(column);
-        int userId = ((Number) ((Map<String, Object>) reply.body.get("session")).get("user_id")).intValue();
-        switch (action) {
-            case "ver", "exportar" -> {
-                List<Map<String, Object>> visible = new ArrayList<>();
-                for (Map<String, Object> column : columns) visible.add(Map.of("key", column.get("key"), "label", column.get("label"), "type", column.get("type")));
-                List<Map<String, Object>> items = new ArrayList<>();
-                for (Map<String, Object> row : Database.listRecords(code)) {
-                    Map<String, Object> stored = (Map<String, Object>) row.get("data");
-                    Map<String, Object> data = new LinkedHashMap<>();
-                    for (Map<String, Object> column : columns) data.put((String) column.get("key"), stored.get(column.get("key")));
-                    Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("id", row.get("id")); item.put("updated_at", row.get("updated_at")); item.put("data", data);
-                    items.add(item);
-                }
-                send(exchange, 200, Map.of("columns", visible, "items", items));
-            }
-            case "crear", "editar" -> {
-                byte[] raw = exchange.getRequestBody().readNBytes(24577);
-                if (raw.length > 24576) { send(exchange, 413, Map.of("error", "Solicitud demasiado grande.")); return; }
-                Map<String, Object> record = cleanRecord(columns, Json.parse(new String(raw, StandardCharsets.UTF_8)));
-                if (record == null) { send(exchange, 400, Map.of("error", "Completa todos los campos con valores válidos.")); return; }
-                if (action.equals("crear")) send(exchange, 201, Map.of("id", Database.insertRecord(code, Json.stringify(record), userId)));
-                // La fusión en SQL conserva las columnas protegidas que este rol no puede ver.
-                else if (Database.updateRecord(Long.parseLong(idText), code, Json.stringify(record))) send(exchange, 200, Map.of("id", Long.parseLong(idText)));
-                else send(exchange, 404, Map.of("error", "Registro no encontrado."));
-            }
-            default -> {
-                if (Database.deleteRecord(Long.parseLong(idText), code)) send(exchange, 200, Map.of("ok", true));
-                else send(exchange, 404, Map.of("error", "Registro no encontrado."));
-            }
-        }
-    }
     private static void handle(HttpExchange exchange) {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
@@ -241,7 +145,6 @@ public class Main {
                 int userId=((Number)((Map<String,Object>)identity.body.get("session")).get("user_id")).intValue();
                 send(exchange,200,Database.status(userId));return;
             }
-            if (path.equals("/api/v1/records") || path.startsWith("/api/v1/records/")) { records(exchange, path, method); return; }
             if (path.startsWith("/api/")) { send(exchange, 404, Map.of("error", "Endpoint no disponible.")); return; }
             if (!method.equals("GET")) { send(exchange, 405, Map.of("error", "Método no permitido.")); return; }
             if (path.startsWith("/assets/") || path.equals("/favicon.svg")) {

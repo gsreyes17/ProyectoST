@@ -186,28 +186,6 @@
   font-size: 13px;
   font-style: italic;
 }
-.demo-page-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.demo-notice {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 14px;
-  padding: 10px 0;
-  border-block: 1px solid var(--rule);
-  color: var(--ink);
-  font-size: 13px;
-}
-.demo-notice svg {
-  color: var(--accent);
-}
-.demo-page .error-box {
-  margin-bottom: 14px;
-  border-radius: 3px;
-}
 .demo-page .panel {
   border: 0;
   border-radius: 0;
@@ -233,9 +211,6 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.demo-grid .icon-button {
-  border-radius: 3px;
-}
 .fx-shell .button {
   border-radius: 3px;
   box-shadow: none;
@@ -250,16 +225,6 @@
   border-color: #cfc9d6;
   background: transparent;
   color: var(--ink);
-}
-.fx-shell .modal {
-  border-radius: 4px;
-}
-.fx-shell .modal h2 {
-  font-family: var(--serif);
-  font-weight: 500;
-}
-.fx-shell .field input {
-  border-radius: 3px;
 }
 @media (max-width: 860px) {
   .fx-header {
@@ -367,40 +332,334 @@
     color: var(--accent);
   }
   .demo-facturacion .auth-brand small,
-  .demo-facturacion .eyebrow.light,
-  .demo-facturacion .auth-story-content > p,
-  .demo-facturacion .auth-benefits span,
-  .demo-facturacion .auth-story-footer,
-  .demo-facturacion .auth-story-footer span {
+  .demo-facturacion .auth-story-content > p {
     color: #7b7385;
   }
-  .demo-facturacion .auth-story-content {
-    padding-top: 40px;
-  }
   .demo-facturacion .auth-story h1 {
-    padding-bottom: 22px;
-    border-bottom: 1px solid var(--ink);
     font-size: 34px;
     letter-spacing: -0.6px;
   }
-  .demo-facturacion .security-illustration {
-    display: none;
+}
+
+/* Pulido general: franja de acento y títulos de documento. */
+.fx-header {
+  border-top: 3px solid var(--accent);
+}
+.fx-title h1 {
+  font-size: 36px;
+}
+
+/* Pantallas de Facturación: registro de comprobantes, talonarios de series y
+   estado por periodo. Los botones son de muestra y no modifican datos. */
+.fx-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 28px;
+  border-block: 1px solid var(--ink);
+}
+.fx-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+}
+.fx-summary div + div {
+  border-left: 1px solid var(--rule);
+}
+.fx-summary span {
+  color: #8d8698;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.fx-summary strong {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.fx-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.fx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fx-intro {
+  color: #6b6474;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-style: italic;
+}
+.fx-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.fx-tabs button {
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #6b6474;
+  font-size: 13px;
+}
+.fx-tabs button:hover {
+  color: var(--ink);
+}
+.fx-tabs button.selected {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+.fx-register {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ink);
+}
+.fx-register li {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 110px 160px 84px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px;
+  border-bottom: 1px solid var(--rule);
+}
+.fx-register li:hover {
+  background: #fff;
+}
+.fx-kind {
+  justify-self: start;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.fx-kind.kind-F {
+  color: var(--accent);
+}
+.fx-kind.kind-B {
+  color: #0f766e;
+}
+.fx-kind.kind-FC {
+  color: #b45309;
+}
+.fx-number strong {
+  display: block;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fx-number small {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #6b6474;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-date {
+  color: #6b6474;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.fx-total {
+  text-align: right;
+}
+.fx-total strong {
+  display: block;
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.fx-total small {
+  color: #b45309;
+  font-size: 12px;
+}
+.fx-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.fx-row-actions button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: #fff;
+  color: #6b6474;
+}
+.fx-row-actions button:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.fx-series {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+.fx-series article {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 22px 18px;
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--ink);
+  background: #fff;
+}
+.fx-series-code {
+  font-family: var(--serif);
+  font-size: 34px;
+  line-height: 1;
+}
+.fx-series h3 {
+  color: #6b6474;
+  font-size: 14px;
+  font-weight: 500;
+}
+.fx-series dl {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rule);
+}
+.fx-series dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.fx-series dt {
+  color: #8d8698;
+  font-size: 12px;
+}
+.fx-series dd {
+  margin: 0;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+}
+.fx-link {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fx-statement {
+  max-width: 640px;
+  margin-bottom: 30px;
+  padding: 26px 30px;
+  border: 1px solid var(--rule);
+  background: #fff;
+}
+.fx-statement h3 {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink);
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+}
+.fx-statement dl {
+  margin: 0;
+}
+.fx-statement dl div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 0;
+}
+.fx-statement dt {
+  font-size: 14px;
+}
+.fx-statement dl div::after {
+  order: 1;
+  flex: 1;
+  border-bottom: 1px dotted #c9c2d2;
+  content: "";
+}
+.fx-statement dd {
+  order: 2;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.mock-notice {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+}
+@media (max-width: 860px) {
+  .fx-summary {
+    grid-template-columns: 1fr;
   }
-  .demo-facturacion .auth-benefits {
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 34px;
-    padding-top: 22px;
-    border-top: 1px solid #e0dbe6;
+  .fx-summary div + div {
+    border-top: 1px solid var(--rule);
+    border-left: 0;
   }
-  .demo-facturacion .auth-benefits span {
-    font-size: 12px;
+  .fx-register li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
   }
-  .demo-facturacion .auth-benefits svg {
-    color: var(--accent);
+  .fx-kind {
+    grid-column: 1 / -1;
   }
-  .demo-facturacion .auth-story-footer {
-    flex-direction: column;
-    gap: 6px;
+  .fx-date {
+    grid-column: 1;
   }
+  .fx-total {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .fx-row-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .mock-notice {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+/* Georgia usa números de estilo antiguo: F001 se leería «Foo1». */
+.fx-shell {
+  font-variant-numeric: lining-nums;
+}
+
+/* Inicio de sesión sin textos en las esquinas: el panel agrupa marca y
+   mensaje en el centro, y el formulario queda centrado en su columna. */
+.auth-story {
+  justify-content: center;
+  gap: 40px;
+}
+.auth-story-content {
+  padding: 0;
 }

@@ -276,23 +276,6 @@
   color: #697f73;
   font-size: 13px;
 }
-.demo-page-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-.demo-notice {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 14px;
-  padding: 11px 14px;
-  border: 1px solid #cfe6d8;
-  border-radius: 8px;
-  background: #f1f9f4;
-  color: #2f6b4a;
-  font-size: 13px;
-}
 .demo-grid th,
 .demo-grid td {
   font-size: 13px;
@@ -303,9 +286,6 @@
 .demo-grid .numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-.demo-page .error-box {
-  margin-bottom: 14px;
 }
 .demo-access-denied {
   display: flex;

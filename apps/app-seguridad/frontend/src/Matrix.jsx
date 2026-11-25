@@ -1,17 +1,10 @@
 import { useState } from "react";
 import { Icon, Badge, Empty } from "./ui";
-import { kindNames } from "./Editors";
 
-// Matriz de permisos: roles en columnas; familias, pantallas y sus grillas,
-// botones y columnas en filas. Es una vista de lectura de lo que IAM entrega
-// a cada rol; se edita desde el propio rol.
-export default function Matrix({
-  apps,
-  roles,
-  menus,
-  capabilities,
-  onEditRole,
-}) {
+// Matriz de permisos: roles en columnas; familias de menú y pantallas en filas.
+// Es una vista de lectura de lo que IAM entrega a cada rol; se edita desde el
+// propio rol.
+export default function Matrix({ apps, roles, menus, onEditRole }) {
   const clients = apps.filter((app) => !app.is_internal);
   const [selected, setSelected] = useState(null);
   const appId = clients.some((app) => app.id === selected)
@@ -34,20 +27,6 @@ export default function Matrix({
       pages: pages.filter((page) => !page.parent_id),
     },
   ].filter((family) => family.pages.length);
-
-  function cell(role, allowed, label) {
-    return (
-      <td key={role.id} className={`matrix-cell ${allowed ? "granted" : ""}`}>
-        <span
-          role="img"
-          aria-label={`${role.name}: ${allowed ? "permitido" : "sin permiso"} — ${label}`}
-          title={`${role.name} · ${label}`}
-        >
-          {allowed ? <Icon name="check" size={14} /> : "–"}
-        </span>
-      </td>
-    );
-  }
 
   return (
     <>
@@ -90,7 +69,7 @@ export default function Matrix({
             <table className="matrix">
               <thead>
                 <tr>
-                  <th>Pantalla / elemento</th>
+                  <th>Pantalla</th>
                   {appRoles.map((role) => (
                     <th key={role.id} className="matrix-role">
                       <button
@@ -121,7 +100,7 @@ export default function Matrix({
                       )}
                     </th>
                   </tr>,
-                  ...family.pages.flatMap((page) => [
+                  ...family.pages.map((page) => (
                     <tr key={`page-${page.id}`} className="matrix-page">
                       <th scope="row">
                         <div className="matrix-page-name">
@@ -129,44 +108,31 @@ export default function Matrix({
                           <span>
                             {page.name}
                             <small>
-                              Pantalla · {page.route}
+                              {page.route}
                               {!page.active && " · desactivada"}
                             </small>
                           </span>
                         </div>
                       </th>
-                      {appRoles.map((role) =>
-                        cell(role, role.menu_ids.includes(page.id), page.name),
-                      )}
-                    </tr>,
-                    ...capabilities
-                      .filter((capability) => capability.menu_id === page.id)
-                      .map((capability) => (
-                        <tr
-                          key={`capability-${capability.id}`}
-                          className="matrix-element"
-                        >
-                          <th scope="row" title={capability.code}>
-                            <span>
-                              {capability.name}
-                              <small>
-                                {kindNames[capability.kind]}
-                                {!capability.active && " · desactivado"}
-                              </small>
+                      {appRoles.map((role) => {
+                        const allowed = role.menu_ids.includes(page.id);
+                        return (
+                          <td
+                            key={role.id}
+                            className={`matrix-cell ${allowed ? "granted" : ""}`}
+                          >
+                            <span
+                              role="img"
+                              aria-label={`${role.name}: ${allowed ? "permitido" : "sin permiso"} — ${page.name}`}
+                              title={`${role.name} · ${page.name}`}
+                            >
+                              {allowed ? <Icon name="check" size={14} /> : "–"}
                             </span>
-                          </th>
-                          {appRoles.map((role) =>
-                            cell(
-                              role,
-                              // Un elemento solo es efectivo con su pantalla.
-                              role.menu_ids.includes(page.id) &&
-                                role.capability_ids.includes(capability.id),
-                              `${page.name}: ${capability.name}`,
-                            ),
-                          )}
-                        </tr>
-                      )),
-                  ]),
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )),
                 ])}
               </tbody>
             </table>
@@ -174,21 +140,15 @@ export default function Matrix({
         )}
         <div className="table-footer">
           <span>
-            {appRoles.length} roles · {pages.length} pantallas ·{" "}
-            {
-              capabilities.filter((capability) => capability.app_id === appId)
-                .length
-            }{" "}
-            elementos
+            {appRoles.length} roles · {pages.length} pantallas
           </span>
-          <span>Configuración centralizada</span>
         </div>
       </section>
       <div className="help-note">
         <Icon name="alert" size={18} />
         <span>
-          La matriz muestra lo asignado a cada rol. Un rol, una pantalla o un
-          elemento desactivado no concede acceso aunque aparezca marcado. Pulsa
+          La matriz muestra las pantallas asignadas a cada rol. Un rol o una
+          pantalla desactivada no concede acceso aunque aparezca marcada. Pulsa
           el nombre de un rol para cambiar sus permisos.
         </span>
       </div>

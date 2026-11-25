@@ -1,6 +1,7 @@
 import "../apps/app-seguridad/backend/src/load-env.js";
 import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import assert from "node:assert/strict";
 import pg from "pg";
@@ -9,11 +10,12 @@ import {
   hashPassword,
   totp,
 } from "../apps/app-seguridad/backend/src/security.js";
-import { applications, backendEnv } from "./project.mjs";
+import { applications, appPath, backendEnv } from "./project.mjs";
 
 const tag = randomBytes(5).toString("hex");
-const adminEmail = `qa-admin-${tag}@empresa.test`;
-const userEmail = `qa-user-${tag}@empresa.test`;
+const domain = process.env.ALLOWED_EMAIL_DOMAINS.split(",")[0].trim();
+const adminEmail = `qa-admin-${tag}@${domain}`;
+const userEmail = `qa-user-${tag}@${domain}`;
 const password = randomBytes(18).toString("base64url");
 const roleName = `QA Exposición ${tag}`;
 const groupName = `QA Grupo ${tag}`;
@@ -38,31 +40,19 @@ async function openDemoPage(page, name) {
   await page.getByRole("link", { name, exact: true }).click();
   assert.equal((await authorization).status(), 200);
   await page.getByRole("heading", { name, exact: true }).waitFor();
-  await page.locator(".demo-page table").waitFor();
-}
-// Casilla de una pantalla o de uno de sus elementos en el árbol de permisos del rol.
-function permission(modal, pageName, element) {
-  const block = modal
-    .locator(".permission-page")
-    .filter({ has: modal.page().getByText(pageName, { exact: true }) });
-  return element
-    ? block
-        .locator(".permission-element")
-        .filter({ hasText: element })
-        .getByRole("checkbox")
-    : block.locator(".permission-page-head").getByRole("checkbox");
-}
-async function editRole(adminPage, name, change) {
-  await adminPage
-    .getByRole("button", { name: "Roles y permisos", exact: true })
-    .click();
-  await adminPage
-    .getByRole("button", { name: `Editar ${name}`, exact: true })
-    .click();
-  const modal = adminPage.getByRole("dialog");
-  await change(modal);
-  await modal.getByRole("button", { name: "Guardar cambios" }).click();
-  await modal.waitFor({ state: "hidden" });
+  // La pantalla autorizada muestra sus registros. Sus botones son de muestra:
+  // avisan que son de demostración y no envían nada al servidor.
+  await page.locator(".demo-page [data-record]").first().waitFor();
+  const writes = [];
+  const track = (request) => {
+    if (request.url().includes("/api/") && request.method() !== "GET")
+      writes.push(`${request.method()} ${request.url()}`);
+  };
+  page.on("request", track);
+  await page.locator(".demo-page .button").first().click();
+  await page.locator(".mock-notice").waitFor();
+  page.off("request", track);
+  assert.deepEqual(writes, []);
 }
 async function enroll(page) {
   await page.locator(".qr-enrollment").waitFor();
@@ -119,7 +109,6 @@ try {
     await adminPage
       .getByRole("heading", { name: "Bienvenido de nuevo" })
       .waitFor();
-    await adminPage.getByLabel("Correo corporativo").waitFor();
     await adminPage.screenshot({
       path: `.local/screenshots/login-${app.slug}.png`,
       fullPage: true,
@@ -153,38 +142,15 @@ try {
     .selectOption({ label: "CRM Comercial" });
   await modal.getByLabel("Nombre del rol").fill(roleName);
   await modal.getByRole("button", { name: "1 hora", exact: true }).click();
-  // Los elementos de una pantalla no se pueden marcar sin autorizar la pantalla.
-  assert.equal(
-    await permission(modal, "Clientes", "Ver grilla").isDisabled(),
-    true,
-  );
-  await permission(modal, "Clientes").check();
-  await permission(modal, "Clientes", "Ver grilla").check();
-  await permission(modal, "Clientes", "Botón Nuevo").check();
-  await adminPage.screenshot({
-    path: ".local/screenshots/rol-permisos.png",
-    fullPage: true,
-  });
+  await modal.getByLabel("Clientes", { exact: false }).check();
   await modal.getByRole("button", { name: "Guardar cambios" }).click();
   await modal.waitFor({ state: "hidden" });
   await adminPage
     .getByRole("button", { name: `Editar ${roleName}`, exact: true })
     .waitFor();
-  console.log(
-    "OK: crear rol y asignar pantalla, grilla y botón desde el panel.",
-  );
+  console.log("OK: crear rol y asignar menú desde el panel.");
 
-  await adminPage
-    .getByRole("button", { name: "Grillas y botones", exact: true })
-    .click();
-  await adminPage.getByText("crm.clientes.exportar", { exact: true }).waitFor();
-  await adminPage.screenshot({
-    path: ".local/screenshots/grillas-botones.png",
-    fullPage: true,
-  });
-  console.log("OK: catálogo de grillas, botones y columnas en el panel.");
-
-  // Matriz: el rol nuevo tiene Clientes, su grilla y Nuevo; no Exportar ni Reportes.
+  // Matriz: el rol nuevo tiene Clientes y no tiene Reportes.
   await adminPage
     .getByRole("button", { name: "Matriz de permisos", exact: true })
     .click();
@@ -192,21 +158,13 @@ try {
   await matrix
     .getByRole("button", { name: `Editar permisos de ${roleName}` })
     .waitFor();
-  const granted = (label) =>
+  const cell = (state, page) =>
     matrix.getByRole("img", {
-      name: `${roleName}: permitido — ${label}`,
+      name: `${roleName}: ${state} — ${page}`,
       exact: true,
     });
-  const missing = (label) =>
-    matrix.getByRole("img", {
-      name: `${roleName}: sin permiso — ${label}`,
-      exact: true,
-    });
-  assert.equal(await granted("Clientes").count(), 1);
-  assert.equal(await granted("Clientes: Ver grilla").count(), 1);
-  assert.equal(await granted("Clientes: Botón Nuevo").count(), 1);
-  assert.equal(await missing("Clientes: Botón Exportar").count(), 1);
-  assert.equal(await missing("Reportes comerciales").count(), 1);
+  assert.equal(await cell("permitido", "Clientes").count(), 1);
+  assert.equal(await cell("sin permiso", "Reportes comerciales").count(), 1);
   await adminPage.screenshot({
     path: ".local/screenshots/matriz.png",
     fullPage: true,
@@ -283,96 +241,10 @@ try {
     .waitFor();
   await openDemoPage(userPage, "Clientes");
 
-  // El rol tiene la grilla y el botón Nuevo: no hay exportar, editar, eliminar
-  // ni la columna protegida.
-  const demo = userPage.locator(".demo-page");
-  const header = (name) =>
-    demo.getByRole("columnheader", { name, exact: true });
-  const action = (name) => demo.getByRole("button", { name, exact: true });
-  const rowAction = (prefix) =>
-    demo.getByRole("button", { name: new RegExp(`^${prefix} registro`) });
-  await action("Nuevo").waitFor();
-  assert.equal(await action("Exportar").count(), 0);
-  assert.equal(await rowAction("Editar").count(), 0);
-  assert.equal(await rowAction("Eliminar").count(), 0);
-  assert.equal(await header("Cliente").count(), 1);
-  assert.equal(await header("Límite de crédito").count(), 0);
-  await action("Nuevo").click();
-  let form = userPage.getByRole("dialog");
-  assert.equal(await form.getByLabel("Límite de crédito").count(), 0);
-  await form.getByLabel("Cliente", { exact: true }).fill(`QA ${tag}`);
-  await form.getByLabel("RUC", { exact: true }).fill("20000000001");
-  await form.getByLabel("Ciudad", { exact: true }).fill("Lima");
-  await form.getByRole("button", { name: "Guardar" }).click();
-  await form.waitFor({ state: "hidden" });
-  const qaRow = demo.getByRole("row").filter({ hasText: `QA ${tag}` });
-  await qaRow.waitFor();
   await userPage.screenshot({
     path: ".local/screenshots/crm.png",
     fullPage: true,
   });
-  console.log("OK: grilla y botón Nuevo según el rol; el resto no aparece.");
-
-  // El administrador concede más elementos: se aplican sin cerrar la sesión.
-  await editRole(adminPage, roleName, async (modal) => {
-    await permission(modal, "Clientes", "Botón Eliminar").check();
-    await permission(modal, "Clientes", "Botón Exportar").check();
-    await permission(modal, "Clientes", "Columna Límite de crédito").check();
-  });
-  await userPage.reload();
-  await demo.locator("table").waitFor();
-  await header("Límite de crédito").waitFor();
-  await action("Exportar").waitFor();
-  assert.equal(await rowAction("Editar").count(), 0);
-  await userPage.screenshot({
-    path: ".local/screenshots/crm-ampliado.png",
-    fullPage: true,
-  });
-  await qaRow.getByRole("button", { name: /^Eliminar registro/ }).click();
-  await userPage
-    .getByRole("dialog")
-    .getByRole("button", { name: "Eliminar", exact: true })
-    .click();
-  await qaRow.waitFor({ state: "detached" });
-  console.log(
-    "OK: botones Eliminar/Exportar y columna protegida concedidos desde el panel.",
-  );
-
-  // Un permiso retirado con la pantalla abierta: el botón sigue visible, pero
-  // el backend deniega y la pantalla se actualiza.
-  await editRole(adminPage, roleName, async (modal) => {
-    await permission(modal, "Clientes", "Botón Nuevo").uncheck();
-    await permission(modal, "Clientes", "Ver grilla").uncheck();
-  });
-  await action("Nuevo").click();
-  form = userPage.getByRole("dialog");
-  await form.getByLabel("Cliente", { exact: true }).fill(`QA ${tag}`);
-  await form.getByLabel("RUC", { exact: true }).fill("20000000001");
-  await form.getByLabel("Ciudad", { exact: true }).fill("Lima");
-  await form.getByLabel("Límite de crédito", { exact: true }).fill("100");
-  const refused = userPage.waitForResponse(
-    (response) =>
-      response.url().includes("/api/v1/records") &&
-      response.request().method() === "POST",
-  );
-  await form.getByRole("button", { name: "Guardar" }).click();
-  assert.equal((await refused).status(), 403);
-  await demo.getByText("Tu rol no incluye esta grilla").waitFor();
-  assert.equal(await action("Nuevo").count(), 0);
-  assert.equal(await demo.locator("table").count(), 0);
-  await userPage.screenshot({
-    path: ".local/screenshots/crm-sin-grilla.png",
-    fullPage: true,
-  });
-  await editRole(adminPage, roleName, async (modal) => {
-    await permission(modal, "Clientes", "Ver grilla").check();
-    await permission(modal, "Clientes", "Botón Nuevo").check();
-  });
-  await userPage.reload();
-  await demo.locator("table").waitFor();
-  console.log(
-    "OK: retirar grilla y botón se aplica en el backend y en la pantalla.",
-  );
   const navigation = userPage.getByRole("navigation", {
     name: "Menú principal",
   });
@@ -468,13 +340,33 @@ try {
       path: `.local/screenshots/${port === 5002 ? "almacen" : "facturacion"}.png`,
       fullPage: true,
     });
-    const denied = await userPage.goto(`http://localhost:${port}/reportes`);
-    assert.equal(denied.status(), 403);
-    await userPage
-      .getByRole("heading", { name: "Acceso no disponible", level: 2 })
-      .waitFor();
+    // Pantalla del catálogo que el rol no tiene, según los menús que entrega IAM.
+    const app = applications.find((app) => app.port === port);
+    const menus = await (
+      await userPage.request.get(
+        `http://localhost:${port}/api/v1/navigation/menus`,
+      )
+    ).json();
+    const granted = new Set(
+      menus.flatMap((menu) =>
+        menu.route ? [menu.route] : menu.children.map((child) => child.route),
+      ),
+    );
+    const { pages } = JSON.parse(
+      readFileSync(appPath(app, "backend/app.json"), "utf8"),
+    );
+    const blocked = pages.find((page) => !granted.has(page.route));
+    if (blocked) {
+      const denied = await userPage.goto(
+        `http://localhost:${port}${blocked.route}`,
+      );
+      assert.equal(denied.status(), 403);
+      await userPage
+        .getByRole("heading", { name: "Acceso no disponible", level: 2 })
+        .waitFor();
+    }
     console.log(
-      `OK: cliente ${port}, recuperación y autorización de página desde el backend.`,
+      `OK: cliente ${port}, recuperación y autorización de página desde el backend${blocked ? "" : " (sin prueba de denegación: el rol tiene todas las pantallas)"}.`,
     );
   }
 
@@ -521,13 +413,25 @@ try {
       `OK: ingreso sin MFA en ${port} mediante política configurada desde el panel.`,
     );
   }
-  await adminPage
-    .getByRole("button", { name: `Editar ${userName}`, exact: true })
-    .click();
+  // Reactivar con el interruptor de la lista, sin abrir el editor.
+  const mfaSwitch = adminPage.getByRole("switch", {
+    name: `Exigir doble factor a ${userName}`,
+    exact: true,
+  });
+  assert.equal(await mfaSwitch.getAttribute("aria-checked"), "false");
+  await mfaSwitch.click();
   modal = adminPage.getByRole("dialog");
-  await modal.getByLabel("Exigir doble factor", { exact: true }).check();
-  await modal.getByRole("button", { name: "Guardar cambios" }).click();
+  await modal.getByRole("button", { name: "Confirmar", exact: true }).click();
   await modal.waitFor({ state: "hidden" });
+  await adminPage
+    .locator(
+      `[role="switch"][aria-label="Exigir doble factor a ${userName}"][aria-checked="true"]`,
+    )
+    .waitFor();
+  await adminPage.screenshot({
+    path: ".local/screenshots/usuarios-mfa.png",
+    fullPage: true,
+  });
   await enterPassword(userPage, 5001, userEmail);
   await userPage
     .getByRole("heading", { name: "Verifica tu identidad" })
@@ -566,6 +470,45 @@ try {
     .getByRole("heading", { name: "Bienvenido de nuevo" })
     .waitFor();
   console.log("OK: cambiar duración desde el panel revoca la sesión del rol.");
+
+  // Historial del rol QA: alta y cambio de duración, con el antes y el después.
+  await adminPage
+    .getByRole("button", { name: `Ver historial de ${roleName}`, exact: true })
+    .click();
+  modal = adminPage.getByRole("dialog");
+  await modal.getByText("Rol creado", { exact: true }).waitFor();
+  await modal.getByText("Rol actualizado", { exact: true }).first().waitFor();
+  await modal.getByText("Duración de sesión:").first().waitFor();
+  await adminPage.screenshot({
+    path: ".local/screenshots/historial-rol.png",
+    fullPage: true,
+  });
+  await modal.getByRole("button", { name: "Cerrar", exact: true }).click();
+  await adminPage
+    .getByRole("button", { name: "Historial de cambios", exact: true })
+    .click();
+  await adminPage
+    .locator("table tbody tr")
+    .filter({ hasText: roleName })
+    .first()
+    .waitFor();
+  await adminPage.screenshot({
+    path: ".local/screenshots/historial.png",
+    fullPage: true,
+  });
+  // Registro de pantallas del usuario QA: permitidas y la URL directa denegada.
+  await adminPage
+    .getByRole("button", { name: "Accesos a pantallas", exact: true })
+    .click();
+  await adminPage.getByLabel("Buscar registros").fill(userEmail);
+  const accessRows = adminPage.locator("table tbody tr");
+  await accessRows.filter({ hasText: "Permitido" }).first().waitFor();
+  await accessRows.filter({ hasText: "Denegado" }).first().waitFor();
+  await adminPage.screenshot({
+    path: ".local/screenshots/accesos.png",
+    fullPage: true,
+  });
+  console.log("OK: historial de cambios y registro de pantallas en el panel.");
 
   await adminPage.setViewportSize({ width: 390, height: 844 });
   await adminPage.screenshot({
@@ -609,14 +552,18 @@ try {
           "DELETE FROM integration_access WHERE iam_user_id=ANY($1::int[])",
           [ids],
         );
-        await local.query(
-          "DELETE FROM records WHERE iam_user_id=ANY($1::int[])",
-          [ids],
-        );
       } finally {
         await local.end();
       }
     }
+    // Historial y accesos de las cuentas QA (el administrador QA hizo los cambios).
+    await owner.query("DELETE FROM access_log WHERE user_id=ANY($1::int[])", [
+      ids,
+    ]);
+    await owner.query(
+      "DELETE FROM admin_changes WHERE user_id=ANY($1::int[])",
+      [ids],
+    );
     await owner.query("DELETE FROM audit_events WHERE user_id=ANY($1::int[])", [
       ids,
     ]);
@@ -639,10 +586,6 @@ try {
       [ids],
     );
     await owner.query("DELETE FROM users WHERE id=ANY($1::int[])", [ids]);
-    await owner.query(
-      "DELETE FROM role_capabilities WHERE role_id IN (SELECT id FROM roles WHERE name=$1)",
-      [roleName],
-    );
     await owner.query(
       "DELETE FROM role_menus WHERE role_id IN (SELECT id FROM roles WHERE name=$1)",
       [roleName],

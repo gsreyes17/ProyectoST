@@ -1,356 +1,279 @@
-import { useCallback, useEffect, useState } from "react";
-import { api } from "../api";
-import { Button, Empty, ErrorBox, Field, Icon, Loading, Modal } from "../ui";
+import { useEffect, useState } from "react";
+import { Button, Empty, Icon } from "../ui";
 
-// Pantallas de esta app. IAM decide por rol qué se muestra:
-//   <pantalla>.ver                 → la grilla
-//   <pantalla>.crear/editar/...    → cada botón
-//   <pantalla>.col.<columna>       → una columna sensible
-// Ocultar un elemento solo mejora la experiencia: el backend vuelve a
-// comprobar la capacidad en cada operación y responde 403 si fue retirada.
-export default function AppPages({ page, path, capabilities, onDenied }) {
+// Pantallas de Facturación. El menú lo arma IAM según el rol activo, y el
+// backend autoriza la pantalla antes de entregarla junto con sus registros.
+// Los botones son de muestra: indican la intención de la función, pero no
+// llaman a ningún endpoint ni modifican datos.
+export default function AppPages({ page, path }) {
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 3500);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  const mock = (label) => () =>
+    setNotice(`«${label}» es una acción de demostración: no modifica datos.`);
+
   if (!page)
     return (
       <section className="demo-home" data-route={path}>
-        <Icon name="layout" size={30} />
+        <Icon name="file" size={30} />
         <h2>Selecciona una opción del menú</h2>
-        <p>
-          Solo aparecen las pantallas, grillas y botones autorizados para tu
-          rol.
-        </p>
+        <p>Solo aparecen las pantallas autorizadas para tu rol.</p>
       </section>
     );
-  return (
-    <ModulePage
-      key={page.code}
-      page={page}
-      capabilities={capabilities}
-      onDenied={onDenied}
-    />
-  );
-}
-
-function formatValue(value, type) {
-  if (value === null || value === undefined) return "—";
-  if (type === "number") return new Intl.NumberFormat("es-PE").format(value);
-  if (type === "date") return String(value).split("-").reverse().join("/");
-  return String(value);
-}
-
-function ModulePage({ page, capabilities, onDenied }) {
-  const can = (action) => capabilities.includes(`${page.code}.${action}`);
-  const offered = (action) => page.actions.includes(action) && can(action);
-  const canView = offered("ver");
-  // Campos del formulario: se omiten las columnas sensibles sin permiso.
-  const fields = page.columns.filter(
-    (column) => !column.protected || can(`col.${column.key}`),
-  );
-  const query = `path=${encodeURIComponent(page.route)}`;
-  const [grid, setGrid] = useState(null);
-  const [loading, setLoading] = useState(canView);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [form, setForm] = useState(null);
-  const [removing, setRemoving] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  function failed(error) {
-    setError(error.message);
-    // 403: el permiso fue retirado con la pantalla abierta. Se actualiza la sesión.
-    if (error.status === 403) onDenied();
-  }
-  const load = useCallback(async () => {
-    if (!canView) {
-      setGrid(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      setGrid(await api(`/records?${query}`));
-      setError("");
-    } catch (error) {
-      setGrid(null);
-      setError(error.message);
-      if (error.status === 403) onDenied();
-    } finally {
-      setLoading(false);
-    }
-    // Se recarga al cambiar la pantalla o los permisos de grilla y columnas.
-  }, [canView, query, fields.length]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 4000);
-    return () => clearTimeout(timer);
-  }, [notice]);
-
-  async function save(event) {
-    event.preventDefault();
-    setBusy(true);
-    const data = Object.fromEntries(
-      fields.map((column) => [
-        column.key,
-        column.type === "number"
-          ? Number(form.values[column.key])
-          : form.values[column.key],
-      ]),
-    );
-    try {
-      await api(`/records${form.id ? `/${form.id}` : ""}?${query}`, {
-        method: form.id ? "PATCH" : "POST",
-        body: { data },
-      });
-      setForm(null);
-      setNotice(form.id ? "Registro actualizado." : "Registro creado.");
-      await load();
-    } catch (error) {
-      setForm(null);
-      failed(error);
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function remove() {
-    setBusy(true);
-    try {
-      await api(`/records/${removing.id}?${query}`, { method: "DELETE" });
-      setNotice("Registro eliminado.");
-      await load();
-    } catch (error) {
-      failed(error);
-    } finally {
-      setRemoving(null);
-      setBusy(false);
-    }
-  }
-  async function exportCsv() {
-    setBusy(true);
-    try {
-      // El backend exige la capacidad «exportar» para entregar estos datos.
-      const result = await api(`/records?${query}&export=1`);
-      const cell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-      const lines = [
-        result.columns.map((column) => cell(column.label)).join(";"),
-        ...result.items.map((item) =>
-          result.columns.map((column) => cell(item.data[column.key])).join(";"),
-        ),
-      ];
-      const url = URL.createObjectURL(
-        new Blob(["﻿" + lines.join("\r\n")], {
-          type: "text/csv;charset=utf-8",
-        }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${page.code}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-      setNotice(`Se exportaron ${result.items.length} registros.`);
-    } catch (error) {
-      failed(error);
-    } finally {
-      setBusy(false);
-    }
-  }
-  function openForm(item) {
-    setError("");
-    setForm({
-      id: item?.id,
-      values: Object.fromEntries(
-        fields.map((column) => [column.key, item?.data[column.key] ?? ""]),
-      ),
-    });
-  }
-  const rowActions = offered("editar") || offered("eliminar");
-
+  const items = page.items || [];
+  const View =
+    {
+      "facturacion.comprobantes": Vouchers,
+      "facturacion.series": Series,
+      "facturacion.reportes": Statement,
+    }[page.code] || Table;
   return (
     <section className="demo-page" data-page={page.code}>
-      <div className="demo-page-toolbar">
-        <p>
-          {grid
-            ? `${grid.items.length} registro${grid.items.length === 1 ? "" : "s"}`
-            : " "}
-        </p>
-        <div className="demo-page-actions">
-          {canView && (
-            <Button
-              variant="secondary"
-              icon="refresh"
-              onClick={() => void load()}
-            >
-              Actualizar
-            </Button>
-          )}
-          {offered("exportar") && (
-            <Button
-              variant="secondary"
-              icon="download"
-              busy={busy && !form && !removing}
-              onClick={exportCsv}
-            >
-              Exportar
-            </Button>
-          )}
-          {offered("crear") && (
-            <Button icon="plus" onClick={() => openForm(null)}>
-              Nuevo
-            </Button>
-          )}
-        </div>
-      </div>
-      <ErrorBox error={error} />
+      {items.length ? (
+        <View page={page} items={items} mock={mock} />
+      ) : (
+        <Empty
+          title="Todavía no hay registros"
+          description="Los registros de esta pantalla aparecerán aquí."
+        />
+      )}
       {notice && (
-        <div className="demo-notice" role="status">
-          <Icon name="success" size={17} />
+        <div className="mock-notice" role="status">
+          <Icon name="alert" size={17} />
           {notice}
         </div>
       )}
-      <div className="panel demo-grid">
-        {loading ? (
-          <Loading />
-        ) : !canView ? (
-          <Empty
-            icon="lock"
-            title="Tu rol no incluye esta grilla"
-            description="Puedes usar las acciones disponibles en esta pantalla. Solicita el permiso de consulta al administrador de seguridad."
-          />
-        ) : !grid ? (
-          <Empty
-            icon="alert"
-            title="No se pudo cargar la grilla"
-            description="Pulsa Actualizar para volver a intentar."
-          />
-        ) : !grid.items.length ? (
-          <Empty
-            title="Todavía no hay registros"
-            description="Los registros de esta pantalla aparecerán aquí."
-          />
-        ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  {grid.columns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={column.type === "number" ? "numeric" : ""}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                  {rowActions && <th aria-label="Acciones" />}
-                </tr>
-              </thead>
-              <tbody>
-                {grid.items.map((item) => (
-                  <tr key={item.id}>
-                    {grid.columns.map((column) => (
-                      <td
-                        key={column.key}
-                        className={column.type === "number" ? "numeric" : ""}
-                      >
-                        {formatValue(item.data[column.key], column.type)}
-                      </td>
-                    ))}
-                    {rowActions && (
-                      <td>
-                        <div className="row-actions">
-                          {offered("editar") && (
-                            <button
-                              className="icon-button"
-                              title="Editar"
-                              aria-label={`Editar registro ${item.id}`}
-                              onClick={() => openForm(item)}
-                            >
-                              <Icon name="edit" size={17} />
-                            </button>
-                          )}
-                          {offered("eliminar") && (
-                            <button
-                              className="icon-button"
-                              title="Eliminar"
-                              aria-label={`Eliminar registro ${item.id}`}
-                              onClick={() => setRemoving(item)}
-                            >
-                              <Icon name="trash" size={17} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      {form && (
-        <Modal
-          title={form.id ? "Editar registro" : "Nuevo registro"}
-          description={page.name}
-          onClose={() => setForm(null)}
-        >
-          <form onSubmit={save} className="editor-form">
-            <div className="editor-body">
-              {fields.map((column) => (
-                <Field
-                  key={column.key}
-                  label={column.label}
-                  required
-                  type={
-                    column.type === "text"
-                      ? "text"
-                      : column.type /* number | date */
-                  }
-                  step={column.type === "number" ? "any" : undefined}
-                  maxLength={column.type === "text" ? 120 : undefined}
-                  value={form.values[column.key]}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      values: {
-                        ...current.values,
-                        [column.key]: event.target.value,
-                      },
-                    }))
-                  }
-                />
-              ))}
-            </div>
-            <footer className="modal-actions">
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => setForm(null)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" busy={busy} icon="check">
-                Guardar
-              </Button>
-            </footer>
-          </form>
-        </Modal>
-      )}
-      {removing && (
-        <Modal
-          title="Eliminar registro"
-          description="Esta acción no se puede deshacer."
-          onClose={() => setRemoving(null)}
-        >
-          <div className="modal-actions">
-            <Button variant="secondary" onClick={() => setRemoving(null)}>
-              Cancelar
-            </Button>
-            <Button busy={busy} icon="trash" onClick={remove}>
-              Eliminar
-            </Button>
-          </div>
-        </Modal>
-      )}
     </section>
+  );
+}
+
+const amount = (value) =>
+  new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+    minimumFractionDigits: 2,
+  }).format(value);
+const date = (value) => String(value).split("-").reverse().join("/");
+const kinds = [
+  { key: "F", label: "Factura", match: (n) => /^F\d/.test(n) },
+  { key: "B", label: "Boleta", match: (n) => /^B\d/.test(n) },
+  { key: "FC", label: "Nota de crédito", match: (n) => /^FC/.test(n) },
+];
+const kindOf = (number) =>
+  kinds.find((kind) => kind.match(number)) || {
+    key: "?",
+    label: "Comprobante",
+  };
+
+function Vouchers({ items, mock }) {
+  const [filter, setFilter] = useState("");
+  const visible = items.filter(
+    ({ data }) => !filter || kindOf(data.numero).key === filter,
+  );
+  const billed = items.reduce((sum, { data }) => sum + data.total, 0);
+  const discounts = items.reduce(
+    (sum, { data }) => sum + (data.descuento || 0),
+    0,
+  );
+  return (
+    <>
+      <div className="fx-summary">
+        <div>
+          <span>Total facturado</span>
+          <strong>{amount(billed)}</strong>
+        </div>
+        <div>
+          <span>Descuentos otorgados</span>
+          <strong>{amount(discounts)}</strong>
+        </div>
+        <div>
+          <span>Comprobantes</span>
+          <strong>{items.length}</strong>
+        </div>
+      </div>
+      <div className="fx-toolbar">
+        <div className="fx-tabs" role="group" aria-label="Tipo de comprobante">
+          {[{ key: "", label: "Todos" }, ...kinds].map((kind) => (
+            <button
+              type="button"
+              key={kind.key}
+              className={filter === kind.key ? "selected" : ""}
+              aria-pressed={filter === kind.key}
+              onClick={() => setFilter(kind.key)}
+            >
+              {kind.label}
+            </button>
+          ))}
+        </div>
+        <div className="fx-actions">
+          <Button
+            variant="secondary"
+            icon="download"
+            onClick={mock("Exportar registro de ventas")}
+          >
+            Exportar registro
+          </Button>
+          <Button icon="plus" onClick={mock("Emitir comprobante")}>
+            Emitir comprobante
+          </Button>
+        </div>
+      </div>
+      <ol className="fx-register">
+        {visible.map(({ id, data }) => {
+          const kind = kindOf(data.numero);
+          return (
+            <li key={id} data-record>
+              <span className={`fx-kind kind-${kind.key}`}>{kind.label}</span>
+              <div className="fx-number">
+                <strong>{data.numero}</strong>
+                <small>{data.cliente}</small>
+              </div>
+              <span className="fx-date">{date(data.fecha)}</span>
+              <div className="fx-total">
+                <strong>{amount(data.total)}</strong>
+                {data.descuento ? (
+                  <small>Descuento {amount(data.descuento)}</small>
+                ) : null}
+              </div>
+              <div className="fx-row-actions">
+                <button
+                  type="button"
+                  title="Ver PDF"
+                  aria-label={`Ver PDF de ${data.numero}`}
+                  onClick={mock("Ver PDF")}
+                >
+                  <Icon name="printer" size={17} />
+                </button>
+                <button
+                  type="button"
+                  title="Enviar al cliente"
+                  aria-label={`Enviar ${data.numero} al cliente`}
+                  onClick={mock("Enviar al cliente")}
+                >
+                  <Icon name="send" size={17} />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </>
+  );
+}
+
+function Series({ items, mock }) {
+  return (
+    <>
+      <div className="fx-toolbar">
+        <p className="fx-intro">
+          Numeración vigente por tipo de comprobante y sucursal.
+        </p>
+        <div className="fx-actions">
+          <Button icon="plus" onClick={mock("Nueva serie")}>
+            Nueva serie
+          </Button>
+        </div>
+      </div>
+      <div className="fx-series">
+        {items.map(({ id, data }) => (
+          <article key={id} data-record>
+            <span className="fx-series-code">{data.serie}</span>
+            <h3>{data.tipo}</h3>
+            <dl>
+              <div>
+                <dt>Último emitido</dt>
+                <dd>
+                  {data.serie}-{String(data.correlativo).padStart(8, "0")}
+                </dd>
+              </div>
+              <div>
+                <dt>Próximo número</dt>
+                <dd>
+                  {data.serie}-{String(data.correlativo + 1).padStart(8, "0")}
+                </dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              className="fx-link"
+              onClick={mock("Ajustar correlativo")}
+            >
+              Ajustar correlativo
+            </button>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function Statement({ items, mock }) {
+  const periods = [...new Set(items.map(({ data }) => data.periodo))]
+    .sort()
+    .reverse();
+  return (
+    <>
+      <div className="fx-toolbar">
+        <p className="fx-intro">Resumen de facturación por periodo.</p>
+        <div className="fx-actions">
+          <Button variant="secondary" icon="printer" onClick={mock("Imprimir")}>
+            Imprimir
+          </Button>
+          <Button icon="download" onClick={mock("Descargar PDF")}>
+            Descargar PDF
+          </Button>
+        </div>
+      </div>
+      {periods.map((period) => (
+        <section className="fx-statement" key={period}>
+          <h3>Periodo {period}</h3>
+          <dl>
+            {items
+              .filter(({ data }) => data.periodo === period)
+              .map(({ id, data }) => (
+                <div key={id} data-record>
+                  <dt>{data.indicador}</dt>
+                  <dd>
+                    {data.valor >= 1000
+                      ? amount(data.valor)
+                      : new Intl.NumberFormat("es-PE").format(data.valor)}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        </section>
+      ))}
+    </>
+  );
+}
+
+// Respaldo para pantallas nuevas sin diseño propio.
+function Table({ page, items }) {
+  return (
+    <div className="panel demo-grid">
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              {page.columns.map((column) => (
+                <th key={column.key}>{column.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(({ id, data }) => (
+              <tr key={id} data-record>
+                {page.columns.map((column) => (
+                  <td key={column.key}>{String(data[column.key] ?? "—")}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

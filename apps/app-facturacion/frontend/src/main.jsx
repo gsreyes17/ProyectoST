@@ -81,7 +81,7 @@ function App() {
     return (
       <Auth config={config} onAuthenticated={loadIdentity} notice={notice} />
     );
-  // Vuelve a pedir a IAM los menús y las capacidades (grillas, botones, columnas).
+  // Vuelve a pedir a IAM los menús autorizados para el rol activo.
   const refreshSession = async () => {
     try {
       await loadIdentity();
@@ -96,14 +96,7 @@ function App() {
       config={config}
       {...identity}
       onLogout={logout}
-      renderPage={({ page, path }) => (
-        <AppPages
-          page={page}
-          path={path}
-          capabilities={identity.capabilities || []}
-          onDenied={refreshSession}
-        />
-      )}
+      renderPage={({ page, path }) => <AppPages page={page} path={path} />}
       refreshSession={refreshSession}
     />
   );

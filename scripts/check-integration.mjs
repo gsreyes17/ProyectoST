@@ -2,27 +2,24 @@ import "../apps/app-seguridad/backend/src/load-env.js";
 import pg from "pg";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { applications, backendEnv } from "./project.mjs";
+import { readFileSync } from "node:fs";
+import { applications, appPath, backendEnv } from "./project.mjs";
 import { hashPassword } from "../apps/app-seguridad/backend/src/security.js";
 
 const owner = new pg.Client({
   connectionString: backendEnv(applications[0]).MIGRATION_DATABASE_URL,
 });
 const tag = randomBytes(6).toString("hex");
+const domain = process.env.ALLOWED_EMAIL_DOMAINS.split(",")[0].trim();
 const password = randomBytes(18).toString("base64url");
 let userId;
 const diagnostics = [];
-async function call(
-  port,
-  endpoint,
-  { method = "GET", body, cookie, csrf } = {},
-) {
+async function call(port, endpoint, { method = "GET", body, cookie } = {}) {
   const response = await fetch(`http://127.0.0.1:${port}/api/v1${endpoint}`, {
     method,
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(cookie ? { Cookie: cookie } : {}),
-      ...(csrf ? { "X-CSRF-Token": csrf } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
     signal: AbortSignal.timeout(10000),
@@ -77,7 +74,7 @@ try {
     await owner.query(
       "INSERT INTO users(email,full_name,password_hash,mfa_required) VALUES($1,$2,$3,FALSE) RETURNING id",
       [
-        `qa-db-${tag}@empresa.test`,
+        `qa-db-${tag}@${domain}`,
         "Prueba de cuatro bases",
         await hashPassword(password),
       ],
@@ -104,7 +101,7 @@ try {
     assert.equal(anonymous.response.status, 401);
     const login = await call(app.port, "/auth/login-step1", {
       method: "POST",
-      body: { email: `qa-db-${tag}@empresa.test`, password },
+      body: { email: `qa-db-${tag}@${domain}`, password },
     });
     assert.equal(login.response.status, 200);
     assert.equal(login.data.state, "AUTHENTICATED");
@@ -126,90 +123,37 @@ try {
     assert.equal(opened.response.status, 200);
     assert.equal(opened.data.database, app.database);
     assert.ok(opened.data.access_id);
+    // La pantalla autorizada trae sus registros de la base propia.
+    assert.ok(Array.isArray(opened.data.items));
+    assert.ok(opened.data.items.length > 0, "carga pnpm run demo:data");
     const after = await call(app.port, "/integration/status", { cookie });
     assert.equal(after.data.own_accesses, first.data.own_accesses + 1);
-    const denied = await call(app.port, "/demo/page?path=/reportes", {
-      cookie,
-    });
+    // Pantalla del catálogo que este rol no tiene, según los menús que entrega IAM.
+    const granted = new Set(
+      menus.data.flatMap((menu) =>
+        menu.route ? [menu.route] : menu.children.map((child) => child.route),
+      ),
+    );
+    const { pages } = JSON.parse(
+      readFileSync(appPath(app, "backend/app.json"), "utf8"),
+    );
+    const blocked = pages.find((page) => !granted.has(page.route));
+    if (!blocked) {
+      console.log(
+        `OK ${app.slug}: IAM autoriza y ${app.database} registra el acceso. Sin prueba de denegación: el rol «Usuario normal» tiene todas las pantallas.`,
+      );
+      continue;
+    }
+    const denied = await call(
+      app.port,
+      `/demo/page?path=${encodeURIComponent(blocked.route)}`,
+      { cookie },
+    );
     assert.equal(denied.response.status, 403);
     const final = await call(app.port, "/integration/status", { cookie });
     assert.equal(final.data.own_accesses, after.data.own_accesses);
-
-    // Grillas, botones y columnas. «Usuario normal» recibe de la carga inicial la
-    // grilla y el botón Nuevo de su pantalla; no edita, elimina ni exporta, y la
-    // columna protegida no sale del backend.
-    const csrf = login.data.csrfToken;
-    const records = `/records?path=${encodeURIComponent(option.route)}`;
-    const byId = (id) =>
-      `/records/${id}?path=${encodeURIComponent(option.route)}`;
-    const grid = await call(app.port, records, { cookie });
-    assert.equal(grid.response.status, 200);
-    assert.ok(grid.data.items.length > 0);
-    const hidden = opened.data.columns.find((column) => column.protected).key;
-    assert.ok(!grid.data.columns.some((column) => column.key === hidden));
-    assert.ok(grid.data.items.every((item) => !(hidden in item.data)));
-    const data = Object.fromEntries(
-      grid.data.columns.map((column) => [
-        column.key,
-        column.type === "number"
-          ? 7
-          : column.type === "date"
-            ? "2026-01-15"
-            : `qa-${tag}`,
-      ]),
-    );
-    const forged = await call(app.port, records, {
-      method: "POST",
-      body: { data },
-      cookie,
-    });
-    assert.equal(forged.response.status, 403, "crear exige CSRF");
-    const invalid = await call(app.port, records, {
-      method: "POST",
-      body: { data: { ...data, [grid.data.columns[0].key]: "" } },
-      cookie,
-      csrf,
-    });
-    assert.equal(invalid.response.status, 400);
-    const created = await call(app.port, records, {
-      method: "POST",
-      body: { data: { ...data, [hidden]: 999 } },
-      cookie,
-      csrf,
-    });
-    assert.equal(created.response.status, 201);
-    const local = new pg.Client({
-      connectionString: backendEnv(app).DATABASE_URL,
-    });
-    await local.connect();
-    try {
-      const stored = (
-        await local.query("SELECT data,iam_user_id FROM records WHERE id=$1", [
-          created.data.id,
-        ])
-      ).rows[0];
-      assert.equal(stored.iam_user_id, userId);
-      assert.ok(!(hidden in stored.data), "no escribe la columna protegida");
-    } finally {
-      await local.end();
-    }
-    for (const [method, endpoint, body] of [
-      ["PATCH", byId(created.data.id), { data }],
-      ["DELETE", byId(created.data.id)],
-      ["GET", `${records}&export=1`],
-    ]) {
-      const refused = await call(app.port, endpoint, {
-        method,
-        body,
-        cookie,
-        csrf,
-      });
-      assert.equal(refused.response.status, 403, `${method} sin capacidad`);
-    }
-    const unchanged = await call(app.port, records, { cookie });
-    assert.equal(unchanged.data.items.length, grid.data.items.length + 1);
     console.log(
-      `OK ${app.slug}: IAM autoriza, ${app.database} registra el acceso, la denegacion no escribe en la base; grilla, botones y columna protegida respetan el rol.`,
+      `OK ${app.slug}: IAM autoriza, ${app.database} registra el acceso, la denegacion no escribe en la base.`,
     );
   }
   console.log(
@@ -227,7 +171,6 @@ try {
           "DELETE FROM integration_access WHERE iam_user_id=$1",
           [userId],
         );
-        await local.query("DELETE FROM records WHERE iam_user_id=$1", [userId]);
       } finally {
         await local.end().catch(() => {});
       }
@@ -235,6 +178,8 @@ try {
     await owner.query("BEGIN");
     try {
       for (const table of [
+        "access_log",
+        "admin_changes",
         "audit_events",
         "sessions",
         "auth_challenges",

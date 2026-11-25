@@ -11,16 +11,26 @@
       "name": "Clientes",
       "route": "/clientes",
       "icon": "users",
-      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
       "columns": [
-        { "key": "nombre", "label": "Cliente", "type": "text" },
-        { "key": "ruc", "label": "RUC", "type": "text" },
-        { "key": "ciudad", "label": "Ciudad", "type": "text" },
+        {
+          "key": "nombre",
+          "label": "Cliente",
+          "type": "text"
+        },
+        {
+          "key": "ruc",
+          "label": "RUC",
+          "type": "text"
+        },
+        {
+          "key": "ciudad",
+          "label": "Ciudad",
+          "type": "text"
+        },
         {
           "key": "limite_credito",
           "label": "Límite de crédito",
-          "type": "number",
-          "protected": true
+          "type": "number"
         }
       ]
     },
@@ -29,16 +39,26 @@
       "name": "Oportunidades",
       "route": "/oportunidades",
       "icon": "chart",
-      "actions": ["ver", "crear", "editar", "eliminar", "exportar"],
       "columns": [
-        { "key": "cliente", "label": "Cliente", "type": "text" },
-        { "key": "etapa", "label": "Etapa", "type": "text" },
-        { "key": "monto", "label": "Monto", "type": "number" },
+        {
+          "key": "cliente",
+          "label": "Cliente",
+          "type": "text"
+        },
+        {
+          "key": "etapa",
+          "label": "Etapa",
+          "type": "text"
+        },
+        {
+          "key": "monto",
+          "label": "Monto",
+          "type": "number"
+        },
         {
           "key": "margen",
           "label": "Margen %",
-          "type": "number",
-          "protected": true
+          "type": "number"
         }
       ]
     },
@@ -47,11 +67,22 @@
       "name": "Reportes comerciales",
       "route": "/reportes",
       "icon": "chart",
-      "actions": ["ver", "exportar"],
       "columns": [
-        { "key": "indicador", "label": "Indicador", "type": "text" },
-        { "key": "periodo", "label": "Periodo", "type": "text" },
-        { "key": "valor", "label": "Valor", "type": "number" }
+        {
+          "key": "indicador",
+          "label": "Indicador",
+          "type": "text"
+        },
+        {
+          "key": "periodo",
+          "label": "Periodo",
+          "type": "text"
+        },
+        {
+          "key": "valor",
+          "label": "Valor",
+          "type": "number"
+        }
       ]
     }
   ]

@@ -18,7 +18,6 @@ import {
   resolveApplication,
   readSession,
   allowedMenus,
-  allowedCapabilities,
   menuTree,
   audit,
 } from "./services/access.js";
@@ -253,7 +252,6 @@ export function createApp({ serveFrontend = true } = {}) {
         ? csrfToken(req.rawToken)
         : undefined,
       menus: await menuTree(req.session),
-      capabilities: await allowedCapabilities(req.session),
     }),
   );
   app.post(
@@ -283,18 +281,27 @@ export function createApp({ serveFrontend = true } = {}) {
     csrf,
     async (req, res) => {
       const data = validate(
-        z.object({ permission: z.string().max(120).optional() }),
+        z.object({ permission: z.string().max(80).optional() }),
         req.body,
       );
-      // El permiso solicitado puede ser una pantalla (menú) o una capacidad
-      // (grilla, botón o columna) de esa pantalla.
       const permissions = await allowedMenus(req.session);
-      const capabilities = await allowedCapabilities(req.session);
-      if (
-        data.permission &&
-        !permissions.some((menu) => menu.code === data.permission) &&
-        !capabilities.includes(data.permission)
-      ) {
+      const allowed =
+        !data.permission ||
+        permissions.some((menu) => menu.code === data.permission);
+      // Registro de pantallas: cada solicitud de una pantalla concreta, con su resultado.
+      if (data.permission)
+        await pool.query(
+          "INSERT INTO access_log(user_id,app_id,role_id,permission,allowed,ip_address) VALUES($1,$2,$3,$4,$5,$6)",
+          [
+            req.session.user_id,
+            req.application.id,
+            req.session.role_id,
+            data.permission,
+            allowed,
+            req.ip,
+          ],
+        );
+      if (!allowed) {
         await audit(pool, {
           userId: req.session.user_id,
           appId: req.application.id,
@@ -303,16 +310,12 @@ export function createApp({ serveFrontend = true } = {}) {
           ip: req.ip,
           detail: data.permission,
         });
-        throw new HttpError(
-          403,
-          "Tu rol no tiene acceso a esta página u operación.",
-        );
+        throw new HttpError(403, "Tu rol no tiene acceso a esta página.");
       }
       res.json({
         valid: true,
         session: req.session,
         permissions: permissions.map((menu) => menu.code),
-        capabilities,
       });
     },
   );

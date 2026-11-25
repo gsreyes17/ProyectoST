@@ -149,21 +149,6 @@
 .demo-grid tbody tr:hover {
   background: color-mix(in srgb, var(--accent) 10%, #fff);
 }
-.demo-grid .icon-button {
-  width: 26px;
-  height: 26px;
-  border-radius: 2px;
-}
-.demo-notice {
-  border-radius: 0;
-  font-family: var(--mono);
-  font-size: 12px;
-}
-.demo-shell .modal,
-.demo-shell .field input,
-.demo-shell .error-box {
-  border-radius: 2px;
-}
 @media (max-width: 900px) {
   .demo-topbar {
     padding: 9px 14px;
@@ -173,16 +158,12 @@
   }
 }
 
-/* Inicio de sesión de Almacén: tarjeta única centrada sobre fondo oscuro con
-   retícula, sin panel lateral. Solo cambia el diseño; el flujo es el de IAM. */
+/* Inicio de sesión de Almacén: tarjeta única centrada sobre fondo oscuro,
+   sin panel lateral. Solo cambia el diseño; el flujo es el de IAM. */
 .auth-layout.demo-almacen {
   --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
   display: block;
-  background-color: #101614;
-  background-image:
-    linear-gradient(#ffffff0a 1px, transparent 1px),
-    linear-gradient(90deg, #ffffff0a 1px, transparent 1px);
-  background-size: 32px 32px;
+  background: #101614;
 }
 .demo-almacen .auth-story {
   display: none;
@@ -190,21 +171,12 @@
 .demo-almacen .auth-main {
   padding: 22px 28px;
 }
-.demo-almacen .auth-top,
-.demo-almacen .auth-footer,
-.demo-almacen .auth-security-label {
-  color: #8fa59b;
-  font-family: var(--mono);
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
 .demo-almacen .auth-form-area {
   max-width: 430px;
   padding: 34px 36px 30px;
   border-top: 4px solid var(--accent);
   border-radius: 2px;
   background: #fff;
-  box-shadow: 0 30px 80px #000000aa;
 }
 .demo-almacen .auth-step-icon {
   width: 46px;
@@ -249,4 +221,175 @@
   .demo-almacen .auth-form-area {
     padding: 26px 20px 22px;
   }
+}
+
+/* Pantallas de Almacén: inventario con nivel de stock, línea de tiempo de
+   movimientos y tablero de indicadores. Los botones son de muestra. */
+.wh-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.wh-toolbar p {
+  color: #4d5c55;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+.wh-alert {
+  color: #b45309;
+}
+.wh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.wh-level {
+  display: block;
+  width: 140px;
+  height: 8px;
+  background: #e3e8e5;
+}
+.wh-level span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.wh-level span.low {
+  background: #d97706;
+}
+.wh-status {
+  display: inline-block;
+  min-width: 70px;
+  padding: 2px 8px;
+  border: 1px solid #9fc9b4;
+  color: #0b6b49;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+  text-transform: uppercase;
+}
+.wh-status.low {
+  border-color: #f0b36b;
+  background: #fff6eb;
+  color: #a65306;
+}
+.wh-timeline section {
+  margin-bottom: 18px;
+}
+.wh-timeline h3 {
+  margin-bottom: 6px;
+  color: #35443e;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.wh-move {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #c3ccc7;
+  border-left-width: 4px;
+  background: #fff;
+}
+.wh-move + .wh-move {
+  border-top: 0;
+}
+.wh-move.in {
+  border-left-color: var(--accent);
+}
+.wh-move.out {
+  border-left-color: #d97706;
+}
+.wh-move.adjust {
+  border-left-color: #64748b;
+}
+.wh-move-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: #eef2f0;
+  color: #35443e;
+}
+.wh-move strong {
+  display: block;
+  font-size: 13px;
+}
+.wh-move small {
+  color: #5e6d66;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.wh-move-qty {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+}
+.wh-move.in .wh-move-qty {
+  color: #0b6b49;
+}
+.wh-move.out .wh-move-qty {
+  color: #a65306;
+}
+.wh-board {
+  margin-bottom: 18px;
+}
+.wh-board h3 {
+  margin-bottom: 6px;
+  color: #35443e;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.wh-board > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  border: 1px solid #c3ccc7;
+  background: #c3ccc7;
+}
+.wh-board article {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #101614;
+  color: #e8f0ec;
+}
+.wh-board small {
+  color: #8fa59b;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.wh-board strong {
+  color: color-mix(in srgb, var(--accent) 60%, #fff);
+  font-family: var(--mono);
+  font-size: 30px;
+}
+.mock-notice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-left: 4px solid var(--accent);
+  background: #101614;
+  color: #e8f0ec;
+  font-family: var(--mono);
+  font-size: 12px;
 }
