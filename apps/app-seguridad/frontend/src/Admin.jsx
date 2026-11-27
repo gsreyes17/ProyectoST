@@ -591,7 +591,6 @@ export default function Admin({ session, config, onLogout }) {
                     </div>
                     <strong>
                       {value}
-                      <span>↗</span>
                     </strong>
                     <small>{caption}</small>
                   </div>
@@ -608,7 +607,7 @@ export default function Admin({ session, config, onLogout }) {
                       className="text-button"
                       onClick={() => navigate("applications")}
                     >
-                      Ver todas <Icon name="arrow" size={15} />
+                      Ver todas
                     </button>
                   </div>
                   <div className="app-tiles">
@@ -633,7 +632,6 @@ export default function Admin({ session, config, onLogout }) {
                           <strong>{demo.name}</strong>
                           <small>Cliente de demostración</small>
                         </div>
-                        <Icon name="arrow" size={18} />
                       </a>
                     ))}
                   </div>
@@ -678,7 +676,7 @@ export default function Admin({ session, config, onLogout }) {
                     className="text-button"
                     onClick={() => navigate("audit")}
                   >
-                    Ver auditoría <Icon name="arrow" size={15} />
+                    Ver auditoría
                   </button>
                 </div>
                 {eventTable(data.recent, true)}
@@ -762,7 +760,7 @@ export default function Admin({ session, config, onLogout }) {
                             target="_blank"
                             rel="noreferrer"
                           >
-                            Abrir <Icon name="arrow" size={16} />
+                            Abrir
                           </a>
                         )}
                       </div>

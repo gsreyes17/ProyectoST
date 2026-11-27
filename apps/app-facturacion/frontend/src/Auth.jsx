@@ -102,11 +102,6 @@ export default function Auth({ config, onAuthenticated, notice }) {
               </>
             )}
           </h1>
-          <p>
-            {isDemo
-              ? "Ingresa con tu cuenta corporativa. Los menús que verás dependen de tu rol."
-              : "Administra usuarios, roles y el acceso a todas tus aplicaciones."}
-          </p>
         </div>
       </aside>
       <main className="auth-main">
